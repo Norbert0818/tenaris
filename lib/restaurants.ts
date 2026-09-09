@@ -1,5 +1,5 @@
-import griffMenu from '@/lib/griff-menu.json';
-import placintaFastFoodMenu from '@/lib/restaurant-menus/placinta-fastfood.json';
+import griffMenu from '@/lib/restaurant-menus/griff-menu.json';
+import placintaFastFoodMenu from '@/lib/restaurant-menus/placintarie-uzcasnic.json';
 
 export type DraftProduct = {
   presetId?: string;
@@ -46,7 +46,7 @@ function normalizeMenu(
 
 export const restaurants: RestaurantPreset[] = [
   {
-    id: 'griff',
+    id: 'griff-menu',
     name: 'Restaurant Griff',
     currency: 'RON',
     menuUpdatedAt: '09.09.2026',
@@ -59,8 +59,8 @@ export const restaurants: RestaurantPreset[] = [
   },
 
   {
-    id: 'placinta-fastfood',
-    name: 'Plăcintă în ulci',
+    id: 'placintarie-uzcasnic',
+    name: 'Plăcintă de la uzcasnic',
     currency: 'RON',
     menuUpdatedAt: '09.09.2026',
     products: normalizeMenu(
