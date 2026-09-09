@@ -449,6 +449,22 @@ export default function Home() {
     0
   );
 
+  const paidOrders = orders.filter(
+    order => order.paid === true
+  );
+
+  const paidCount = paidOrders.length;
+
+  const paidTotal = paidOrders.reduce(
+    (sum, order) => sum + order.total,
+    0
+  );
+
+  const remainingTotal = Math.max(
+    0,
+    allTotal - paidTotal
+  );
+
   return (
     <>
       <header>
@@ -1838,6 +1854,55 @@ export default function Home() {
 
                                   <div className="person-actions">
                                     <button
+                                      className={
+                                        'secondary payment-toggle ' +
+                                        (order.paid
+                                          ? 'paid'
+                                          : '')
+                                      }
+                                      disabled={busy}
+                                      onClick={() =>
+                                        action(async () => {
+                                          const nextPaid =
+                                            !order.paid;
+
+                                          await api('', {
+                                            action:
+                                              'set_paid',
+                                            id: round.id,
+                                            orderId:
+                                              order.id,
+                                            paid: nextPaid,
+                                          });
+
+                                          setOrders(
+                                            previous =>
+                                              previous.map(
+                                                item =>
+                                                  item.id ===
+                                                  order.id
+                                                    ? {
+                                                        ...item,
+                                                        paid:
+                                                          nextPaid,
+                                                      }
+                                                    : item
+                                              )
+                                          );
+                                        })
+                                      }
+                                    >
+                                      {order.paid ? (
+                                        <>
+                                          <Check size={15} />
+                                          Plătit
+                                        </>
+                                      ) : (
+                                        'Marchează plătit'
+                                      )}
+                                    </button>
+
+                                    <button
                                       className="secondary"
                                       disabled={busy}
                                       onClick={() =>
@@ -1912,6 +1977,54 @@ export default function Home() {
                                 <br />
                                 Comenzile trimise vor
                                 apărea aici.
+                              </div>
+                            )}
+
+                            {orders.length > 0 && (
+                              <div className="payment-summary">
+                                <h3>
+                                  Situația plăților
+                                </h3>
+
+                                <div>
+                                  <span>
+                                    Total comandă
+                                  </span>
+                                  <strong>
+                                    {money(allTotal)}
+                                  </strong>
+                                </div>
+
+                                <div>
+                                  <span>
+                                    Plătit
+                                  </span>
+                                  <strong>
+                                    {money(paidTotal)}
+                                  </strong>
+                                </div>
+
+                                <div>
+                                  <span>
+                                    Rămas de plată
+                                  </span>
+                                  <strong>
+                                    {money(
+                                      remainingTotal
+                                    )}
+                                  </strong>
+                                </div>
+
+                                <div className="payment-summary-count">
+                                  <span>
+                                    Persoane care au
+                                    plătit
+                                  </span>
+                                  <strong>
+                                    {paidCount} /{' '}
+                                    {orders.length}
+                                  </strong>
+                                </div>
                               </div>
                             )}
                           </section>

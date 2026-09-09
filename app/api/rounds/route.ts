@@ -64,13 +64,7 @@ export async function GET(req: Request) {
       return fail('Comanda nu a fost găsită.', 404);
     }
 
-    const orders = admin
-      ? await database(
-          'orders?round_id=eq.' +
-            id +
-            '&deleted=eq.false&select=id,name,items,total,created,revision&order=created.desc'
-        )
-      : [];
+    const orders=admin?await database('orders?round_id=eq.'+id+'&deleted=eq.false&select=id,name,items,total,created,revision,paid&order=created.desc'):[];
 
     return Response.json(
       {
@@ -285,6 +279,23 @@ export async function POST(req: Request) {
       'update_order',
       'delete_order',
     ];
+
+    if(b.action==='set_paid'){
+      if(!isAdmin(req))return fail('Doar organizatorul poate modifica starea plății.',403);
+      if(!uuid(b.orderId))return fail('Comanda nu este validă.');
+      const result=await database(
+        'orders?id=eq.'+b.orderId+'&round_id=eq.'+b.id,
+        {
+          method:'PATCH',
+          body:JSON.stringify({paid:!!b.paid})
+        }
+      );
+      if(!Array.isArray(result)||!result.length)return fail('Comanda nu a fost găsită.',404);
+      return Response.json(
+        {ok:true,paid:!!b.paid},
+        {headers:{'Cache-Control':'no-store'}}
+      );
+    }
 
     if (
       !supported.includes(body.action) ||

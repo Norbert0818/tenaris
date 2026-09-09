@@ -181,3 +181,56 @@
     font-size: 13px;
   }
 }
+
+/* Payment tracking */
+.payment-toggle{
+  min-height:36px;
+  padding:7px 12px;
+  font-size:13px;
+}
+
+.payment-toggle.paid{
+  color:#1b6a4d;
+  border-color:#b8ddca;
+  background:#e8f5ee;
+}
+
+.payment-summary{
+  margin-top:28px;
+  padding-top:22px;
+  border-top:2px solid #dce3ee;
+}
+
+.payment-summary h3{
+  margin:0 0 14px;
+  font-size:17px;
+}
+
+.payment-summary>div{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:9px 0;
+  font-size:14px;
+}
+
+.payment-summary>div strong{
+  margin-left:0;
+}
+
+.payment-summary-count{
+  margin-top:6px;
+  padding-top:14px!important;
+  border-top:1px solid #e6ebf3;
+}
+
+@media(max-width:700px){
+  .payment-toggle{
+    width:100%;
+  }
+
+  .person>.person-actions{
+    margin-left:43px;
+  }
+}
