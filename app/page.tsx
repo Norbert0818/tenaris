@@ -1,43 +1,1936 @@
+// app/page.tsx
 'use client';
-import { useEffect, useState } from 'react';
-import { RestaurantPicker, initialGriffProducts, DailyMenu, FoodPhoto, type DraftProduct } from '@/components/restaurant-picker';
-import {DailyMenuPicker} from '@/components/daily-menu-picker';
-import {dailyGroups,type OrderProduct} from '@/lib/griff-daily';
-import {prepareProducts} from '@/lib/prepare-products';
-import { MenuImport } from '@/components/menu-import';
-import { OrderEditor } from '@/components/order-editor';
-import { Plus, ArrowLeft, ShoppingBag, ClipboardList, Copy, Check, Trash2, Users, Package, RefreshCw } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-const newEditToken=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),v=>v.toString(16).padStart(2,'0')).join('');
-type Product=OrderProduct;
-const examples=['Clătite cu cacao','Clătite cu scorțișoară','Clătite cu gem','Clătite cu brânză dulce','Clătite cu Nutella','Clătite cu Nutella și banane','Clătite cu nucă','Clătite cu mac'];
-export default function Home(){
- const [view,setView]=useState('home'),[rounds,setRounds]=useState<any[]>([]),[round,setRound]=useState<any>(null),[orders,setOrders]=useState<any[]>([]),[owner,setOwner]=useState(false),[tab,setTab]=useState('order'),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
- const [title,setTitle]=useState(''),[currency,setCurrency]=useState('RON'),[products,setProducts]=useState<DraftProduct[]>([]),[name,setName]=useState(''),[qty,setQty]=useState<Record<string,number>>({}),[sent,setSent]=useState(false),[orderId,setOrderId]=useState(''),[needLogin,setNeedLogin]=useState(false),[password,setPassword]=useState(''),[editToken,setEditToken]=useState(''),[ownAccess,setOwnAccess]=useState<{orderId:string;token:string}|null>(null),[editing,setEditing]=useState<{data:any;token?:string;nonce:number}|null>(null);
- const [griffProducts,setGriffProducts]=useState<DraftProduct[]>(initialGriffProducts);
- const [source,setSource]=useState('manual'),[importPending,setImportPending]=useState(false);
- const money=(v:number,c=round?.currency||currency)=>new Intl.NumberFormat('ro-RO',{style:'currency',currency:c}).format(v/100);
- async function api(path='',body?:any){const r=await fetch('/api/rounds'+path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{cache:'no-store'});const d=await r.json();if(r.status===401)setNeedLogin(true);if(!r.ok)throw Error(d.error||'A apărut o eroare.');return d;}
- async function load(id?:string){setLoading(true);setError('');try{const d=await api(id?'?id='+encodeURIComponent(id):'');setNeedLogin(false);if(id){setRound(d.round);setOrders(d.orders);setOwner(d.isOwner);setView('round');}else{setRounds(d.rounds);setView('home');}}catch(e:any){setError(e.message);}finally{setLoading(false);}}
- useEffect(()=>{const id=new URLSearchParams(location.search).get('r');if(id)setView('round');load(id||undefined);setOrderId(crypto.randomUUID());setEditToken(newEditToken());if(id)restoreAccess(id,true);const pop=()=>{setSent(false);setQty({});setEditing(null);const next=new URLSearchParams(location.search).get('r');load(next||undefined);setOwnAccess(null);if(next)restoreAccess(next,true);};window.addEventListener('popstate',pop);return()=>window.removeEventListener('popstate',pop);},[]);
- async function action(fn:()=>Promise<void>){setBusy(true);setError('');setNotice('');try{await fn();}catch(e:any){setError(e.message);}finally{setBusy(false);}}
 
- function restoreAccess(id:string,readHash=false){try{const hash=new URLSearchParams(readHash?location.hash.slice(1):'');const saved=hash.get('order')&&hash.get('token')?{orderId:hash.get('order')!,token:hash.get('token')!}:JSON.parse(localStorage.getItem('comanda:edit:'+id)||'null');if(saved&&/^[a-f0-9]{64}$/.test(saved.token)&&typeof saved.orderId==='string'){setOwnAccess(saved);if(hash.get('order'))editOrder(id,saved.orderId,saved.token).catch(e=>setError(e.message));}}catch{}}
- async function editOrder(roundId:string,id:string,token?:string){const d=await api('',{action:'view_order',id:roundId,orderId:id,editToken:token});setEditing({data:d.order,token,nonce:Date.now()});}
- function saveAccess(roundId:string,id:string,token:string){const access={orderId:id,token};setOwnAccess(access);try{localStorage.setItem('comanda:edit:'+roundId,JSON.stringify(access));}catch{}history.replaceState({},'','?r='+roundId+'#order='+id+'&token='+token);}
- function resetOrder(){setSent(false);setName('');setQty({});setOrderId(crypto.randomUUID());setEditToken(newEditToken());history.replaceState({},'','?r='+round.id);}
- async function copyEditLink(){if(!ownAccess)return;await navigator.clipboard.writeText(location.origin+'/?r='+round.id+'#order='+ownAccess.orderId+'&token='+ownAccess.token);setNotice('Link de editare copiat. Păstrează-l pentru tine: cine îl are poate modifica această comandă.');}
- function open(id:string){setEditing(null);setOwnAccess(null);setEditToken(newEditToken());restoreAccess(id);history.pushState({},'','?r='+id);setQty({});setSent(false);setTab('order');setOrderId(crypto.randomUUID());load(id);}
- function home(){setEditing(null);setOwnAccess(null);history.pushState({},'','/');load();setNotice('');}
- function applyProducts(imported:DraftProduct[],importCurrency:string){const existing=products.filter(p=>p.name.trim()||p.price!=='');if(existing.length&&importCurrency!==currency)return 'Moneda diferă de lista existentă. Creează o listă nouă sau schimbă moneda; nu există conversie automată.';const fresh=imported.filter(p=>!existing.some(e=>e.name===p.name&&e.price===p.price));if(existing.length+fresh.length>100)return 'Lista poate avea maximum 100 de produse.';if(!fresh.length)return 'Produsele selectate sunt deja în listă.';setProducts([...existing,...fresh]);setCurrency(importCurrency);return null;}
- const chosen:Product[]=round?.products.filter((p:Product)=>qty[p.id]>0)||[],total=chosen.reduce((s,p)=>s+p.price*qty[p.id],0),allTotal=orders.reduce((s,o)=>s+o.total,0),count=orders.reduce((s,o)=>s+o.items.reduce((n:number,i:any)=>n+i.qty,0),0);
- return <><header><a className="brand" href="/" onClick={e=>{e.preventDefault();home();}}><span className="brand-icon"><ShoppingBag size={22}/></span>Comandă de grup<span className="brand-divider">/</span><span className="brand-sub">Mai simplu împreună.</span></a><span className="header-note">Comenzile echipei, într-un singur loc</span>{!needLogin&&view==='home'&&<button className="text-button" onClick={()=>action(async()=>{await fetch('/api/auth',{method:'DELETE'});await load();})}>Ieșire organizator</button>}</header><main>
- {view!=='home'&&<button className="back" onClick={home}><ArrowLeft size={16}/> Comenzile mele de grup</button>}
- {error&&<div className="error" role="alert">{error} <button onClick={()=>load(round?.id||new URLSearchParams(location.search).get('r')||undefined)}>Reîncarcă</button></div>}{notice&&<div className="notice" role="status">{notice}</div>}
- {view==='home'&&<><div className="page-heading"><div><p className="eyebrow">COMENZI DE GRUP</p><h1>Ce comandăm azi?</h1><p>Creează o listă și află ce dorește fiecare.</p></div><button className="primary" disabled={needLogin} onClick={()=>{setView('create');setError('');}}><Plus size={19}/> Comandă de grup nouă</button></div>{needLogin?<form className="panel" style={{maxWidth:480}} onSubmit={e=>{e.preventDefault();action(async()=>{const r=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password})});const d=await r.json();if(!r.ok)throw Error(d.error);setPassword('');setNeedLogin(false);await load();});}}><h2>Acces organizator</h2><p className="muted">Introdu parola pentru a crea comenzi și a vedea centralizatorul. Colegii comandă direct prin link, fără autentificare.</p><label>Parola organizatorului<input required type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/></label><button className="primary wide" style={{marginTop:20}} disabled={busy}>{busy?'Se verifică…':'Intră'}</button></form>:loading?<div className="panel muted">Se încarcă comenzile de grup…</div>:rounds.length?<div className="round-grid">{rounds.map(r=><button className="round-card" key={r.id} onClick={()=>open(r.id)}><span className="round-icon"><ClipboardList/></span><span className={'badge '+(r.closed?'closed':'')}>{r.closed?'Închisă':'Deschisă'}</span><h2>{r.title}</h2><p>{new Date(r.created).toLocaleDateString('ro-RO')} · {r.currency}</p><span className="card-link">Comandă și centralizator →</span></button>)}</div>:!error&&<section className="empty panel"><span className="empty-icon"><ClipboardList size={36}/></span><h2>Prima comandă de grup începe aici.</h2><p>Clătite, prânz sau rechizite de birou?<br/>Tu adaugi produsele, fiecare alege ce dorește.</p><button className="primary" onClick={()=>setView('create')}><Plus size={18}/> Creează comanda de grup</button><div className="steps"><span><b>01</b> Produse și prețuri</span><span><b>02</b> Nume și cantitate</span><span><b>03</b> Centralizator automat</span></div></section>}</>}
- {view==='create'&&<><div className="page-heading"><div><p className="eyebrow">COMANDĂ DE GRUP NOUĂ</p><h1>Pregătește lista.</h1><p>După salvare, vei primi linkul pentru comenzi.</p></div></div><form noValidate className="create-grid" onSubmit={e=>{e.preventDefault();action(async()=>{if(source==='import'&&importPending)throw Error('Apasă Folosește meniul importat înainte de a crea comanda.');if(!title.trim())throw Error('Completează denumirea comenzii.');const d=await api('',{action:'create',title,currency:source==='griff'?'RON':currency,products:prepareProducts(source==='griff'?griffProducts:products)});open(d.id);setTab('summary');});}}><section className="panel"><div className="source-picker"><label>Cum pregătești lista?<Select value={source} onValueChange={setSource}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="manual">Introducere manuală</SelectItem><SelectItem value="import">Import din imagini / PDF / text</SelectItem><SelectItem value="griff">Restaurant Griff</SelectItem></SelectContent></Select></label><p className="muted">Alege o metodă. Nu trebuie să completezi și produse manuale după import.</p></div>{source==='griff'&&<RestaurantPicker value={griffProducts} onChange={setGriffProducts}/>}<div hidden={source!=='import'}><MenuImport currency={currency} onPending={setImportPending} onApply={applyProducts}/></div>{source==='manual'&&<DailyMenu currency={currency} onApply={applyProducts}/>}<div className="form-top"><label>Denumirea comenzii<input required maxLength={100} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Ex. Clătite de vineri"/></label><label>Monedă<Select value={source==='griff'?'RON':currency} disabled={source==='griff'} onValueChange={setCurrency}><SelectTrigger className="currency"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="RON">RON · lei</SelectItem><SelectItem value="HUF">HUF · forinți</SelectItem><SelectItem value="EUR">EUR · euro</SelectItem></SelectContent></Select></label></div>{source!=='griff'&&<><div className="section-heading"><h2>Lista pentru comandă</h2><button type="button" className="text-button" onClick={()=>setProducts([...products.filter(p=>p.name.trim()||p.price),...examples.map(name=>({name,price:''}))])}>Adaugă 8 sortimente de clătite</button></div><div className="edit-head"><span>Denumirea produsului</span><span>Preț unitar ({currency})</span><span/></div>{products.map((p,i)=><div className="edit-row" key={i}><input aria-label={`${i+1}. produs: denumire`} required maxLength={200} placeholder="Ex. Clătite cu cacao" value={p.name} disabled={p.dailyMenu} onChange={e=>setProducts(products.map((p,j)=>i===j?{...p,name:e.target.value}:p))}/><input aria-label={`${i+1}. produs: preț`} required type="number" min="0" max="100000" step="0.01" placeholder="0,00" value={p.price} disabled={p.dailyMenu} onChange={e=>setProducts(products.map((p,j)=>i===j?{...p,price:e.target.value}:p))}/><button type="button" className="icon-button" aria-label={`${i+1}. Șterge produsul`} onClick={()=>setProducts(products.filter((_,j)=>i!==j))}><Trash2 size={18}/></button></div>)}<button type="button" className="add-item" disabled={products.length>=100} onClick={()=>setProducts([...products,{name:'',price:''}])}><Plus size={18}/> Adaugă un produs</button></>}</section><aside className="panel setup-aside"><span className="round-icon"><ClipboardList/></span><h2>Fiecare comandă se adună.</h2><p>Colegii aleg produsele, introduc cantitățile și numele.</p><p>Tu vezi centralizatorul pe produse și pe persoane.</p><div className="aside-note">{source==='griff'?`${griffProducts.length} opțiuni Griff selectate. Se salvează direct, fără produse manuale.`:'Verifică prețurile înainte de salvare. Prețurile listei create rămân fixe.'}</div><button className="primary wide" disabled={busy||(source==='import'&&importPending)}>{busy?'Se salvează…':'Creează comanda de grup'}</button>{source==='import'&&importPending&&<p className="muted" role="status">Finalizează importul cu „Folosește meniul importat”.</p>}</aside></form></>}
- {view==='round'&&(loading&&!round?<div className="panel">Se încarcă comanda…</div>:round&&<><div className="page-heading"><div><p className="eyebrow">COMANDĂ DE GRUP</p><h1>{round.title}</h1><p><span className={'badge '+(round.closed?'closed':'')}>{round.closed?'Închisă':'Deschisă'}</span> <span className="muted">{round.products.filter((p:Product)=>!p.dailyChoices).length+(round.products.some((p:Product)=>p.dailyChoices)?1:0)} produse disponibile · {round.currency}</span></p></div>{owner&&<button className="secondary" onClick={()=>action(async()=>{await navigator.clipboard.writeText(location.origin+'/?r='+round.id);setNotice('Link copiat! Trimite-l colegilor; pot comanda fără cont sau parolă.');})}><Copy size={17}/> Copiază linkul de comandă</button>}</div>{ownAccess&&!editing&&<div className="own-order-tools"><button className="secondary" disabled={busy} onClick={()=>action(()=>editOrder(round.id,ownAccess.orderId,ownAccess.token))}>Modifică propria comandă</button><button className="secondary" onClick={()=>action(copyEditLink)}><Copy size={16}/>Copiază linkul meu de editare</button><span className="muted">Păstrează linkul pentru a reveni de pe alt dispozitiv.</span></div>}{editing&&<OrderEditor key={editing.data.id+'-'+editing.data.revision+'-'+editing.nonce} order={editing.data} products={round.products} currency={round.currency} locked={round.closed&&!owner} onCancel={()=>setEditing(null)} onReload={()=>editOrder(round.id,editing.data.id,editing.token)} onSave={async(nextName,items)=>{const d=await api('',{action:'update_order',id:round.id,orderId:editing.data.id,editToken:editing.token,revision:editing.data.revision,name:nextName,items});setOrders(prev=>prev.map(o=>o.id===d.order.id?d.order:o));if(editing.token){setName(d.order.name);setQty(Object.fromEntries(d.order.items.map((i:any)=>[i.id,i.qty])));setSent(true);setTab('order');}setEditing(null);setNotice('Modificările au fost salvate. Totalurile au fost actualizate.');}}/>}<div hidden={!!editing}><Tabs value={tab} onValueChange={setTab}><TabsList className="tabs"><TabsTrigger value="order">Plasează o comandă</TabsTrigger>{owner&&<TabsTrigger value="summary">Centralizator <span className="tab-count">{orders.length}</span></TabsTrigger>}</TabsList><TabsContent value="order">{sent?<section className="panel success"><span className="success-check"><Check size={30}/></span><h2>Mulțumim, {name}!</h2><p>Comanda ta a fost salvată.</p><strong>{money(total)}</strong><div className="receipt">{chosen.map(p=><p key={p.id}><span>{qty[p.id]} × {p.name}</span><b>{money(p.price*qty[p.id])}</b></p>)}</div><button className="secondary" onClick={resetOrder}>Plasează o comandă nouă</button></section>:<form className="order-grid" onSubmit={e=>{e.preventDefault();action(async()=>{const saved=await api('',{action:'order',id:round.id,name,orderId,editToken,items:chosen.map(p=>({id:p.id,qty:qty[p.id]}))});saveAccess(round.id,orderId,editToken);setName(saved.order.name);setQty(Object.fromEntries(saved.order.items.map((i:any)=>[i.id,i.qty])));setSent(true);if(owner){const d=await api('?id='+round.id);setOrders(d.orders);}});}}><section className="panel product-panel"><div className="section-heading"><h2>Ce dorești?</h2><span className="muted">Bifează și introdu cantitatea.</span></div><DailyMenuPicker products={round.products} qty={qty} onChange={setQty} disabled={round.closed||busy}/>{round.products.filter((p:Product)=>!p.dailyChoices).map((p:Product,i:number)=><div key={p.id} className={'product-row '+(qty[p.id]?'selected':'')}><Checkbox id={p.id} className="product-checkbox" disabled={round.closed||busy} checked={!!qty[p.id]} onCheckedChange={v=>setQty({...qty,[p.id]:v?1:0})}/>{p.image?<FoodPhoto src={p.image} name={p.name}/>:<span className="product-number">{String(i+1).padStart(2,'0')}</span>}<label htmlFor={p.id}><b>{p.name}</b><span>{money(p.price)} / buc.</span></label><div className="quantity"><input aria-label={`${p.name} cantitate`} type="number" min="1" max="999" step="1" disabled={!qty[p.id]||round.closed||busy} value={qty[p.id]||''} placeholder="–" onChange={e=>setQty({...qty,[p.id]:Math.max(1,Math.min(999,Number(e.target.value)))})}/><span>buc.</span></div></div>)}</section><aside className="panel basket"><h2>Comanda ta</h2>{chosen.length?<div className="basket-items">{chosen.map(p=><div key={p.id}><span>{qty[p.id]} × {p.name}</span><b>{money(p.price*qty[p.id])}</b></div>)}</div>:<p className="muted basket-empty">Nu ai ales încă niciun produs.</p>}<div className="total"><span>Total de plată</span><strong>{money(total)}</strong></div><label>Numele tău<input required maxLength={80} disabled={busy||round.closed} placeholder="Nume și prenume" value={name} onChange={e=>setName(e.target.value)}/></label><button className="primary wide" disabled={busy||round.closed||!chosen.length}>{round.closed?'Comanda este închisă':busy?'Se trimite…':'Trimite comanda'}</button><p className="small muted">Comanda apare în centralizator doar după trimitere.</p></aside></form>}</TabsContent>{owner&&<TabsContent value="summary"><div className="stats"><div><Users/><span>Comenzi primite</span><strong>{orders.length}</strong></div><div><Package/><span>Cantitate totală</span><strong>{count} <small>buc.</small></strong></div><div className="grand"><ShoppingBag/><span>Valoare totală</span><strong>{money(allTotal)}</strong></div></div><div className="summary-tools"><span className="muted">Centralizatorul comenzilor salvate</span><div><button className="secondary" disabled={busy} onClick={()=>action(async()=>{const d=await api('?id='+round.id);setOrders(d.orders);setRound(d.round);})}><RefreshCw size={16}/> Actualizează</button><button className="secondary" disabled={busy} onClick={()=>action(async()=>{await api('',{action:'toggle',id:round.id,closed:!round.closed});setRound({...round,closed:!round.closed});})}>{round.closed?'Redeschide comanda':'Închide comanda'}</button></div></div><div className="summary-grid"><section className="panel"><h2>Pe produse</h2><p className="muted">Folosește această listă pentru comanda finală.</p>{round.products.map((p:Product)=>{const n=orders.reduce((s,o)=>s+o.items.filter((i:any)=>i.id===p.id).reduce((s:number,i:any)=>s+i.qty,0),0);if(!n)return null;return <div className="summary-row" key={p.id}><span>{p.name}</span><b>{n} buc.</b><strong>{money(n*p.price)}</strong></div>;})}{round.products.some((p:Product)=>p.dailyChoices)&&<div className="daily-course-summary"><h3>Meniul zilei — total pe feluri</h3><p className="small muted">Incluse în prețul meniului; nu se adaugă costuri separate.</p>{dailyGroups.map(g=><div key={g.key}><h4>{g.label}</h4>{g.options.map(option=>{const n=orders.reduce((sum,o)=>sum+o.items.filter((i:Product)=>i.dailyChoices?.[g.key]===option).reduce((s:number,i:any)=>s+i.qty,0),0);return n>0?<p key={option}><span>{option}</span><b>{n} buc.</b></p>:null;})}</div>)}</div>}<div className="summary-row total"><b>Total</b><b>{count} buc.</b><strong>{money(allTotal)}</strong></div></section><section className="panel"><h2>Pe persoane</h2><p className="muted">Ce a comandat fiecare și cât are de plătit?</p>{orders.length?orders.map(o=><article className="person" key={o.id}><div><span className="avatar">{o.name.slice(0,1).toUpperCase()}</span><b>{o.name}</b><strong>{money(o.total)}</strong></div><p>{o.items.map((i:any)=>`${i.qty} × ${i.name}`).join(' · ')}</p><div className="person-actions"><button className="secondary" disabled={busy} onClick={()=>action(()=>editOrder(round.id,o.id))}>Modifică</button><button className="secondary delete-order" disabled={busy} onClick={()=>{if(!window.confirm('Ștergi comanda lui '+o.name+'? Aceasta va fi eliminată din totaluri.'))return;action(async()=>{await api('',{action:'delete_order',id:round.id,orderId:o.id,revision:o.revision});setOrders(prev=>prev.filter(row=>row.id!==o.id));setNotice('Comanda a fost ștearsă. Totalurile au fost actualizate.');});}}><Trash2 size={15}/>Șterge</button></div></article>):<div className="no-orders">Nu s-a primit încă nicio comandă.<br/>Comenzile trimise vor apărea aici.</div>}</section></div></TabsContent>}</Tabs></div></>)}
- </main><footer>Comandă de grup <span>Mai puține mesaje. Comenzi mai clare.</span></footer></>;
+import { useEffect, useState } from 'react';
+
+import {
+  RestaurantPicker,
+  DailyMenu,
+  type DraftProduct,
+} from '@/components/restaurant-picker';
+
+import {
+  restaurants,
+  getRestaurant,
+  initialRestaurantProducts,
+} from '@/lib/restaurants';
+
+import { GroupedProductList } from '@/components/grouped-product-list';
+import { DailyMenuPicker } from '@/components/daily-menu-picker';
+
+import {
+  dailyGroups,
+  type OrderProduct,
+} from '@/lib/griff-daily';
+
+import { prepareProducts } from '@/lib/prepare-products';
+import { OrderEditor } from '@/components/order-editor';
+
+import {
+  Plus,
+  ArrowLeft,
+  ShoppingBag,
+  ClipboardList,
+  Copy,
+  Check,
+  Trash2,
+  Users,
+  Package,
+  RefreshCw,
+} from 'lucide-react';
+
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from '@/components/ui/tabs';
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+const newEditToken = () =>
+  Array.from(
+    crypto.getRandomValues(new Uint8Array(32)),
+    value => value.toString(16).padStart(2, '0')
+  ).join('');
+
+type Product = OrderProduct;
+
+const examples = [
+  'Clătite cu cacao',
+  'Clătite cu scorțișoară',
+  'Clătite cu gem',
+  'Clătite cu brânză dulce',
+  'Clătite cu Nutella',
+  'Clătite cu Nutella și banane',
+  'Clătite cu nucă',
+  'Clătite cu mac',
+];
+
+export default function Home() {
+  const [view, setView] = useState('home');
+  const [rounds, setRounds] = useState<any[]>([]);
+  const [round, setRound] = useState<any>(null);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [owner, setOwner] = useState(false);
+  const [tab, setTab] = useState('order');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+
+  const [title, setTitle] = useState('');
+  const [currency, setCurrency] = useState('RON');
+  const [products, setProducts] = useState<DraftProduct[]>([]);
+  const [name, setName] = useState('');
+  const [qty, setQty] = useState<Record<string, number>>({});
+  const [sent, setSent] = useState(false);
+  const [orderId, setOrderId] = useState('');
+  const [needLogin, setNeedLogin] = useState(false);
+  const [password, setPassword] = useState('');
+  const [editToken, setEditToken] = useState('');
+  const [ownAccess, setOwnAccess] = useState<{
+    orderId: string;
+    token: string;
+  } | null>(null);
+  const [editing, setEditing] = useState<{
+    data: any;
+    token?: string;
+    nonce: number;
+  } | null>(null);
+
+  const [source, setSource] = useState('manual');
+  const [restaurantProducts, setRestaurantProducts] =
+    useState<DraftProduct[]>([]);
+
+  const selectedRestaurant = getRestaurant(source);
+
+  const money = (
+    value: number,
+    selectedCurrency = round?.currency || currency
+  ) =>
+    new Intl.NumberFormat('ro-RO', {
+      style: 'currency',
+      currency: selectedCurrency,
+    }).format(value / 100);
+
+  async function api(path = '', body?: any) {
+    const response = await fetch(
+      '/api/rounds' + path,
+      body
+        ? {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+          }
+        : {
+            cache: 'no-store',
+          }
+    );
+
+    const data = await response.json();
+
+    if (response.status === 401) {
+      setNeedLogin(true);
+    }
+
+    if (!response.ok) {
+      throw Error(data.error || 'A apărut o eroare.');
+    }
+
+    return data;
+  }
+
+  async function load(id?: string) {
+    setLoading(true);
+    setError('');
+
+    try {
+      const data = await api(
+        id ? '?id=' + encodeURIComponent(id) : ''
+      );
+
+      setNeedLogin(false);
+
+      if (id) {
+        setRound(data.round);
+        setOrders(data.orders);
+        setOwner(data.isOwner);
+        setView('round');
+      } else {
+        setRounds(data.rounds);
+        setView('home');
+      }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const id = new URLSearchParams(location.search).get('r');
+
+    if (id) {
+      setView('round');
+    }
+
+    load(id || undefined);
+    setOrderId(crypto.randomUUID());
+    setEditToken(newEditToken());
+
+    if (id) {
+      restoreAccess(id, true);
+    }
+
+    const pop = () => {
+      setSent(false);
+      setQty({});
+      setEditing(null);
+
+      const next = new URLSearchParams(location.search).get('r');
+
+      load(next || undefined);
+      setOwnAccess(null);
+
+      if (next) {
+        restoreAccess(next, true);
+      }
+    };
+
+    window.addEventListener('popstate', pop);
+
+    return () => {
+      window.removeEventListener('popstate', pop);
+    };
+  }, []);
+
+  async function action(fn: () => Promise<void>) {
+    setBusy(true);
+    setError('');
+    setNotice('');
+
+    try {
+      await fn();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function restoreAccess(id: string, readHash = false) {
+    try {
+      const hash = new URLSearchParams(
+        readHash ? location.hash.slice(1) : ''
+      );
+
+      const saved =
+        hash.get('order') && hash.get('token')
+          ? {
+              orderId: hash.get('order')!,
+              token: hash.get('token')!,
+            }
+          : JSON.parse(
+              localStorage.getItem('comanda:edit:' + id) ||
+                'null'
+            );
+
+      if (
+        saved &&
+        /^[a-f0-9]{64}$/.test(saved.token) &&
+        typeof saved.orderId === 'string'
+      ) {
+        setOwnAccess(saved);
+
+        if (hash.get('order')) {
+          editOrder(id, saved.orderId, saved.token).catch(e =>
+            setError(e.message)
+          );
+        }
+      }
+    } catch {}
+  }
+
+  async function editOrder(
+    roundId: string,
+    id: string,
+    token?: string
+  ) {
+    const data = await api('', {
+      action: 'view_order',
+      id: roundId,
+      orderId: id,
+      editToken: token,
+    });
+
+    setEditing({
+      data: data.order,
+      token,
+      nonce: Date.now(),
+    });
+  }
+
+  function saveAccess(
+    roundId: string,
+    id: string,
+    token: string
+  ) {
+    const access = {
+      orderId: id,
+      token,
+    };
+
+    setOwnAccess(access);
+
+    try {
+      localStorage.setItem(
+        'comanda:edit:' + roundId,
+        JSON.stringify(access)
+      );
+    } catch {}
+
+    history.replaceState(
+      {},
+      '',
+      '?r=' +
+        roundId +
+        '#order=' +
+        id +
+        '&token=' +
+        token
+    );
+  }
+
+  function resetOrder() {
+    setSent(false);
+    setName('');
+    setQty({});
+    setOrderId(crypto.randomUUID());
+    setEditToken(newEditToken());
+
+    history.replaceState({}, '', '?r=' + round.id);
+  }
+
+  async function copyEditLink() {
+    if (!ownAccess) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(
+      location.origin +
+        '/?r=' +
+        round.id +
+        '#order=' +
+        ownAccess.orderId +
+        '&token=' +
+        ownAccess.token
+    );
+
+    setNotice(
+      'Link de editare copiat. Păstrează-l pentru tine: cine îl are poate modifica această comandă.'
+    );
+  }
+
+  function open(id: string) {
+    setEditing(null);
+    setOwnAccess(null);
+    setEditToken(newEditToken());
+
+    restoreAccess(id);
+
+    history.pushState({}, '', '?r=' + id);
+
+    setQty({});
+    setSent(false);
+    setTab('order');
+    setOrderId(crypto.randomUUID());
+
+    load(id);
+  }
+
+  function home() {
+    setEditing(null);
+    setOwnAccess(null);
+
+    history.pushState({}, '', '/');
+
+    load();
+    setNotice('');
+  }
+
+  function changeSource(next: string) {
+    setSource(next);
+    setError('');
+
+    const restaurant = getRestaurant(next);
+
+    if (restaurant) {
+      setRestaurantProducts(
+        initialRestaurantProducts(restaurant)
+      );
+      setCurrency(restaurant.currency);
+    } else {
+      setRestaurantProducts([]);
+    }
+  }
+
+  function applyProducts(
+    imported: DraftProduct[],
+    importCurrency: string
+  ) {
+    const existing = products.filter(
+      product =>
+        product.name.trim() || product.price !== ''
+    );
+
+    if (
+      existing.length &&
+      importCurrency !== currency
+    ) {
+      return 'Moneda diferă de lista existentă. Creează o listă nouă sau schimbă moneda; nu există conversie automată.';
+    }
+
+    const fresh = imported.filter(
+      product =>
+        !existing.some(
+          existingProduct =>
+            existingProduct.name === product.name &&
+            existingProduct.price === product.price
+        )
+    );
+
+    if (existing.length + fresh.length > 100) {
+      return 'Lista poate avea maximum 100 de produse.';
+    }
+
+    if (!fresh.length) {
+      return 'Produsele selectate sunt deja în listă.';
+    }
+
+    setProducts([...existing, ...fresh]);
+    setCurrency(importCurrency);
+
+    return null;
+  }
+
+  const chosen: Product[] =
+    round?.products.filter(
+      (product: Product) => qty[product.id] > 0
+    ) || [];
+
+  const total = chosen.reduce(
+    (sum, product) =>
+      sum + product.price * qty[product.id],
+    0
+  );
+
+  const allTotal = orders.reduce(
+    (sum, order) => sum + order.total,
+    0
+  );
+
+  const count = orders.reduce(
+    (sum, order) =>
+      sum +
+      order.items.reduce(
+        (itemSum: number, item: any) =>
+          itemSum + item.qty,
+        0
+      ),
+    0
+  );
+
+  return (
+    <>
+      <header>
+        <a
+          className="brand"
+          href="/"
+          onClick={event => {
+            event.preventDefault();
+            home();
+          }}
+        >
+          <span className="brand-icon">
+            <ShoppingBag size={22} />
+          </span>
+
+          Comandă de grup
+
+          <span className="brand-divider">/</span>
+
+          <span className="brand-sub">
+            Mai simplu împreună.
+          </span>
+        </a>
+
+        <span className="header-note">
+          Comenzile echipei, într-un singur loc
+        </span>
+
+        {!needLogin && view === 'home' && (
+          <button
+            className="text-button"
+            onClick={() =>
+              action(async () => {
+                await fetch('/api/auth', {
+                  method: 'DELETE',
+                });
+
+                await load();
+              })
+            }
+          >
+            Ieșire organizator
+          </button>
+        )}
+      </header>
+
+      <main>
+        {view !== 'home' && (
+          <button
+            className="back"
+            onClick={home}
+          >
+            <ArrowLeft size={16} />
+            Comenzile mele de grup
+          </button>
+        )}
+
+        {error && (
+          <div
+            className="error"
+            role="alert"
+          >
+            {error}{' '}
+
+            <button
+              onClick={() =>
+                load(
+                  round?.id ||
+                    new URLSearchParams(
+                      location.search
+                    ).get('r') ||
+                    undefined
+                )
+              }
+            >
+              Reîncarcă
+            </button>
+          </div>
+        )}
+
+        {notice && (
+          <div
+            className="notice"
+            role="status"
+          >
+            {notice}
+          </div>
+        )}
+
+        {view === 'home' && (
+          <>
+            <div className="page-heading">
+              <div>
+                <p className="eyebrow">
+                  COMENZI DE GRUP
+                </p>
+
+                <h1>Ce comandăm azi?</h1>
+
+                <p>
+                  Creează o listă și află ce dorește
+                  fiecare.
+                </p>
+              </div>
+
+              <button
+                className="primary"
+                disabled={needLogin}
+                onClick={() => {
+                  setView('create');
+                  setError('');
+                }}
+              >
+                <Plus size={19} />
+                Comandă de grup nouă
+              </button>
+            </div>
+
+            {needLogin ? (
+              <form
+                className="panel"
+                style={{ maxWidth: 480 }}
+                onSubmit={event => {
+                  event.preventDefault();
+
+                  action(async () => {
+                    const response = await fetch(
+                      '/api/auth',
+                      {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type':
+                            'application/json',
+                        },
+                        body: JSON.stringify({
+                          password,
+                        }),
+                      }
+                    );
+
+                    const data =
+                      await response.json();
+
+                    if (!response.ok) {
+                      throw Error(data.error);
+                    }
+
+                    setPassword('');
+                    setNeedLogin(false);
+
+                    await load();
+                  });
+                }}
+              >
+                <h2>Acces organizator</h2>
+
+                <p className="muted">
+                  Introdu parola pentru a crea comenzi și
+                  a vedea centralizatorul. Colegii
+                  comandă direct prin link, fără
+                  autentificare.
+                </p>
+
+                <label>
+                  Parola organizatorului
+
+                  <input
+                    required
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={event =>
+                      setPassword(event.target.value)
+                    }
+                  />
+                </label>
+
+                <button
+                  className="primary wide"
+                  style={{ marginTop: 20 }}
+                  disabled={busy}
+                >
+                  {busy
+                    ? 'Se verifică…'
+                    : 'Intră'}
+                </button>
+              </form>
+            ) : loading ? (
+              <div className="panel muted">
+                Se încarcă comenzile de grup…
+              </div>
+            ) : rounds.length ? (
+              <div className="round-grid">
+                {rounds.map(item => (
+                  <button
+                    className="round-card"
+                    key={item.id}
+                    onClick={() => open(item.id)}
+                  >
+                    <span className="round-icon">
+                      <ClipboardList />
+                    </span>
+
+                    <span
+                      className={
+                        'badge ' +
+                        (item.closed ? 'closed' : '')
+                      }
+                    >
+                      {item.closed
+                        ? 'Închisă'
+                        : 'Deschisă'}
+                    </span>
+
+                    <h2>{item.title}</h2>
+
+                    <p>
+                      {new Date(
+                        item.created
+                      ).toLocaleDateString('ro-RO')}{' '}
+                      · {item.currency}
+                    </p>
+
+                    <span className="card-link">
+                      Comandă și centralizator →
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              !error && (
+                <section className="empty panel">
+                  <span className="empty-icon">
+                    <ClipboardList size={36} />
+                  </span>
+
+                  <h2>
+                    Prima comandă de grup începe aici.
+                  </h2>
+
+                  <p>
+                    Clătite, prânz sau rechizite de
+                    birou?
+                    <br />
+                    Tu adaugi produsele, fiecare alege ce
+                    dorește.
+                  </p>
+
+                  <button
+                    className="primary"
+                    onClick={() =>
+                      setView('create')
+                    }
+                  >
+                    <Plus size={18} />
+                    Creează comanda de grup
+                  </button>
+
+                  <div className="steps">
+                    <span>
+                      <b>01</b> Produse și prețuri
+                    </span>
+
+                    <span>
+                      <b>02</b> Nume și cantitate
+                    </span>
+
+                    <span>
+                      <b>03</b> Centralizator automat
+                    </span>
+                  </div>
+                </section>
+              )
+            )}
+          </>
+        )}
+
+        {view === 'create' && (
+          <>
+            <div className="page-heading">
+              <div>
+                <p className="eyebrow">
+                  COMANDĂ DE GRUP NOUĂ
+                </p>
+
+                <h1>Pregătește lista.</h1>
+
+                <p>
+                  După salvare, vei primi linkul pentru
+                  comenzi.
+                </p>
+              </div>
+            </div>
+
+            <form
+              noValidate
+              className="create-grid"
+              onSubmit={event => {
+                event.preventDefault();
+
+                action(async () => {
+                  if (!title.trim()) {
+                    throw Error(
+                      'Completează denumirea comenzii.'
+                    );
+                  }
+
+                  const orderCurrency =
+                    selectedRestaurant?.currency ||
+                    currency;
+
+                  const orderProducts =
+                    selectedRestaurant
+                      ? restaurantProducts
+                      : products;
+
+                  const data = await api('', {
+                    action: 'create',
+                    title,
+                    currency: orderCurrency,
+                    products:
+                      prepareProducts(orderProducts),
+                  });
+
+                  open(data.id);
+                  setTab('summary');
+                });
+              }}
+            >
+              <section className="panel">
+                <div className="source-picker">
+                  <label>
+                    De unde comandăm?
+
+                    <Select
+                      value={source}
+                      onValueChange={changeSource}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        <SelectItem value="manual">
+                          Introducere manuală
+                        </SelectItem>
+
+                        {restaurants.map(
+                          restaurant => (
+                            <SelectItem
+                              key={restaurant.id}
+                              value={restaurant.id}
+                            >
+                              {restaurant.name}
+                            </SelectItem>
+                          )
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </label>
+
+                  <p className="muted">
+                    Alege un restaurant cu meniu salvat
+                    sau introdu produsele manual.
+                  </p>
+                </div>
+
+                {selectedRestaurant && (
+                  <RestaurantPicker
+                    restaurant={
+                      selectedRestaurant
+                    }
+                    value={restaurantProducts}
+                    onChange={
+                      setRestaurantProducts
+                    }
+                  />
+                )}
+
+                {source === 'manual' && (
+                  <DailyMenu
+                    currency={currency}
+                    onApply={applyProducts}
+                  />
+                )}
+
+                <div className="form-top">
+                  <label>
+                    Denumirea comenzii
+
+                    <input
+                      required
+                      maxLength={100}
+                      value={title}
+                      onChange={event =>
+                        setTitle(event.target.value)
+                      }
+                      placeholder="Ex. Prânzul de miercuri"
+                    />
+                  </label>
+
+                  <label>
+                    Monedă
+
+                    <Select
+                      value={
+                        selectedRestaurant?.currency ||
+                        currency
+                      }
+                      disabled={
+                        !!selectedRestaurant
+                      }
+                      onValueChange={setCurrency}
+                    >
+                      <SelectTrigger className="currency">
+                        <SelectValue />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        <SelectItem value="RON">
+                          RON · lei
+                        </SelectItem>
+
+                        <SelectItem value="HUF">
+                          HUF · forinți
+                        </SelectItem>
+
+                        <SelectItem value="EUR">
+                          EUR · euro
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </label>
+                </div>
+
+                {!selectedRestaurant && (
+                  <>
+                    <div className="section-heading">
+                      <h2>Lista pentru comandă</h2>
+
+                      <button
+                        type="button"
+                        className="text-button"
+                        onClick={() =>
+                          setProducts([
+                            ...products.filter(
+                              product =>
+                                product.name.trim() ||
+                                product.price
+                            ),
+                            ...examples.map(name => ({
+                              name,
+                              price: '',
+                            })),
+                          ])
+                        }
+                      >
+                        Adaugă 8 sortimente de clătite
+                      </button>
+                    </div>
+
+                    <div className="edit-head">
+                      <span>Denumirea produsului</span>
+
+                      <span>
+                        Preț unitar ({currency})
+                      </span>
+
+                      <span />
+                    </div>
+
+                    {products.map(
+                      (product, index) => (
+                        <div
+                          className="edit-row"
+                          key={index}
+                        >
+                          <input
+                            aria-label={`${
+                              index + 1
+                            }. produs: denumire`}
+                            required
+                            maxLength={200}
+                            placeholder="Ex. Clătite cu cacao"
+                            value={product.name}
+                            disabled={
+                              product.dailyMenu
+                            }
+                            onChange={event =>
+                              setProducts(
+                                products.map(
+                                  (
+                                    current,
+                                    currentIndex
+                                  ) =>
+                                    index ===
+                                    currentIndex
+                                      ? {
+                                          ...current,
+                                          name: event
+                                            .target
+                                            .value,
+                                        }
+                                      : current
+                                )
+                              )
+                            }
+                          />
+
+                          <input
+                            aria-label={`${
+                              index + 1
+                            }. produs: preț`}
+                            required
+                            type="number"
+                            min="0"
+                            max="100000"
+                            step="0.01"
+                            placeholder="0,00"
+                            value={product.price}
+                            disabled={
+                              product.dailyMenu
+                            }
+                            onChange={event =>
+                              setProducts(
+                                products.map(
+                                  (
+                                    current,
+                                    currentIndex
+                                  ) =>
+                                    index ===
+                                    currentIndex
+                                      ? {
+                                          ...current,
+                                          price:
+                                            event
+                                              .target
+                                              .value,
+                                        }
+                                      : current
+                                )
+                              )
+                            }
+                          />
+
+                          <button
+                            type="button"
+                            className="icon-button"
+                            aria-label={`${
+                              index + 1
+                            }. Șterge produsul`}
+                            onClick={() =>
+                              setProducts(
+                                products.filter(
+                                  (
+                                    _,
+                                    currentIndex
+                                  ) =>
+                                    index !==
+                                    currentIndex
+                                )
+                              )
+                            }
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      )
+                    )}
+
+                    <button
+                      type="button"
+                      className="add-item"
+                      disabled={
+                        products.length >= 100
+                      }
+                      onClick={() =>
+                        setProducts([
+                          ...products,
+                          {
+                            name: '',
+                            price: '',
+                          },
+                        ])
+                      }
+                    >
+                      <Plus size={18} />
+                      Adaugă un produs
+                    </button>
+                  </>
+                )}
+              </section>
+
+              <aside className="panel setup-aside">
+                <span className="round-icon">
+                  <ClipboardList />
+                </span>
+
+                <h2>Fiecare comandă se adună.</h2>
+
+                <p>
+                  Colegii aleg produsele, introduc
+                  cantitățile și numele.
+                </p>
+
+                <p>
+                  Tu vezi centralizatorul pe produse și
+                  pe persoane.
+                </p>
+
+                <div className="aside-note">
+                  {selectedRestaurant
+                    ? `${
+                        restaurantProducts.length
+                      } opțiuni din ${
+                        selectedRestaurant.name
+                      } sunt selectate.`
+                    : 'Verifică prețurile înainte de salvare. Prețurile listei create rămân fixe.'}
+                </div>
+
+                <button
+                  className="primary wide"
+                  disabled={busy}
+                >
+                  {busy
+                    ? 'Se salvează…'
+                    : 'Creează comanda de grup'}
+                </button>
+              </aside>
+            </form>
+          </>
+        )}
+
+        {view === 'round' &&
+          (loading && !round ? (
+            <div className="panel">
+              Se încarcă comanda…
+            </div>
+          ) : (
+            round && (
+              <>
+                <div className="page-heading">
+                  <div>
+                    <p className="eyebrow">
+                      COMANDĂ DE GRUP
+                    </p>
+
+                    <h1>{round.title}</h1>
+
+                    <p>
+                      <span
+                        className={
+                          'badge ' +
+                          (round.closed
+                            ? 'closed'
+                            : '')
+                        }
+                      >
+                        {round.closed
+                          ? 'Închisă'
+                          : 'Deschisă'}
+                      </span>{' '}
+
+                      <span className="muted">
+                        {round.products.filter(
+                          (product: Product) =>
+                            !product.dailyChoices
+                        ).length +
+                          (round.products.some(
+                            (product: Product) =>
+                              product.dailyChoices
+                          )
+                            ? 1
+                            : 0)}{' '}
+                        produse disponibile ·{' '}
+                        {round.currency}
+                      </span>
+                    </p>
+                  </div>
+
+                  {owner && (
+                    <button
+                      className="secondary"
+                      onClick={() =>
+                        action(async () => {
+                          await navigator.clipboard.writeText(
+                            location.origin +
+                              '/?r=' +
+                              round.id
+                          );
+
+                          setNotice(
+                            'Link copiat! Trimite-l colegilor; pot comanda fără cont sau parolă.'
+                          );
+                        })
+                      }
+                    >
+                      <Copy size={17} />
+                      Copiază linkul de comandă
+                    </button>
+                  )}
+                </div>
+
+                {ownAccess && !editing && (
+                  <div className="own-order-tools">
+                    <button
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() =>
+                        action(() =>
+                          editOrder(
+                            round.id,
+                            ownAccess.orderId,
+                            ownAccess.token
+                          )
+                        )
+                      }
+                    >
+                      Modifică propria comandă
+                    </button>
+
+                    <button
+                      className="secondary"
+                      onClick={() =>
+                        action(copyEditLink)
+                      }
+                    >
+                      <Copy size={16} />
+                      Copiază linkul meu de editare
+                    </button>
+
+                    <span className="muted">
+                      Păstrează linkul pentru a reveni de
+                      pe alt dispozitiv.
+                    </span>
+                  </div>
+                )}
+
+                {editing && (
+                  <OrderEditor
+                    key={
+                      editing.data.id +
+                      '-' +
+                      editing.data.revision +
+                      '-' +
+                      editing.nonce
+                    }
+                    order={editing.data}
+                    products={round.products}
+                    currency={round.currency}
+                    locked={
+                      round.closed && !owner
+                    }
+                    onCancel={() =>
+                      setEditing(null)
+                    }
+                    onReload={() =>
+                      editOrder(
+                        round.id,
+                        editing.data.id,
+                        editing.token
+                      )
+                    }
+                    onSave={async (
+                      nextName,
+                      items
+                    ) => {
+                      const data = await api('', {
+                        action: 'update_order',
+                        id: round.id,
+                        orderId: editing.data.id,
+                        editToken: editing.token,
+                        revision:
+                          editing.data.revision,
+                        name: nextName,
+                        items,
+                      });
+
+                      setOrders(previous =>
+                        previous.map(order =>
+                          order.id === data.order.id
+                            ? data.order
+                            : order
+                        )
+                      );
+
+                      if (editing.token) {
+                        setName(data.order.name);
+
+                        setQty(
+                          Object.fromEntries(
+                            data.order.items.map(
+                              (item: any) => [
+                                item.id,
+                                item.qty,
+                              ]
+                            )
+                          )
+                        );
+
+                        setSent(true);
+                        setTab('order');
+                      }
+
+                      setEditing(null);
+
+                      setNotice(
+                        'Modificările au fost salvate. Totalurile au fost actualizate.'
+                      );
+                    }}
+                  />
+                )}
+
+                <div hidden={!!editing}>
+                  <Tabs
+                    value={tab}
+                    onValueChange={setTab}
+                  >
+                    <TabsList className="tabs">
+                      <TabsTrigger value="order">
+                        Plasează o comandă
+                      </TabsTrigger>
+
+                      {owner && (
+                        <TabsTrigger value="summary">
+                          Centralizator{' '}
+                          <span className="tab-count">
+                            {orders.length}
+                          </span>
+                        </TabsTrigger>
+                      )}
+                    </TabsList>
+
+                    <TabsContent value="order">
+                      {sent ? (
+                        <section className="panel success">
+                          <span className="success-check">
+                            <Check size={30} />
+                          </span>
+
+                          <h2>
+                            Mulțumim, {name}!
+                          </h2>
+
+                          <p>
+                            Comanda ta a fost salvată.
+                          </p>
+
+                          <strong>
+                            {money(total)}
+                          </strong>
+
+                          <div className="receipt">
+                            {chosen.map(product => (
+                              <p key={product.id}>
+                                <span>
+                                  {qty[product.id]} ×{' '}
+                                  {product.name}
+                                </span>
+
+                                <b>
+                                  {money(
+                                    product.price *
+                                      qty[
+                                        product.id
+                                      ]
+                                  )}
+                                </b>
+                              </p>
+                            ))}
+                          </div>
+
+                          <button
+                            className="secondary"
+                            onClick={resetOrder}
+                          >
+                            Plasează o comandă nouă
+                          </button>
+                        </section>
+                      ) : (
+                        <form
+                          className="order-grid"
+                          onSubmit={event => {
+                            event.preventDefault();
+
+                            action(async () => {
+                              const saved =
+                                await api('', {
+                                  action: 'order',
+                                  id: round.id,
+                                  name,
+                                  orderId,
+                                  editToken,
+                                  items: chosen.map(
+                                    product => ({
+                                      id: product.id,
+                                      qty: qty[
+                                        product.id
+                                      ],
+                                    })
+                                  ),
+                                });
+
+                              saveAccess(
+                                round.id,
+                                orderId,
+                                editToken
+                              );
+
+                              setName(
+                                saved.order.name
+                              );
+
+                              setQty(
+                                Object.fromEntries(
+                                  saved.order.items.map(
+                                    (item: any) => [
+                                      item.id,
+                                      item.qty,
+                                    ]
+                                  )
+                                )
+                              );
+
+                              setSent(true);
+
+                              if (owner) {
+                                const data =
+                                  await api(
+                                    '?id=' +
+                                      round.id
+                                  );
+
+                                setOrders(
+                                  data.orders
+                                );
+                              }
+                            });
+                          }}
+                        >
+                          <section className="panel product-panel">
+                            <div className="section-heading">
+                              <h2>Ce dorești?</h2>
+
+                              <span className="muted">
+                                Bifează și introdu
+                                cantitatea.
+                              </span>
+                            </div>
+
+                            <DailyMenuPicker
+                              products={
+                                round.products
+                              }
+                              qty={qty}
+                              onChange={setQty}
+                              disabled={
+                                round.closed ||
+                                busy
+                              }
+                            />
+
+                            <GroupedProductList
+                              products={
+                                round.products
+                              }
+                              qty={qty}
+                              onChange={setQty}
+                              disabled={
+                                round.closed ||
+                                busy
+                              }
+                              money={value =>
+                                money(value)
+                              }
+                            />
+                          </section>
+
+                          <aside className="panel basket">
+                            <h2>Comanda ta</h2>
+
+                            {chosen.length ? (
+                              <div className="basket-items">
+                                {chosen.map(
+                                  product => (
+                                    <div
+                                      key={
+                                        product.id
+                                      }
+                                    >
+                                      <span>
+                                        {
+                                          qty[
+                                            product.id
+                                          ]
+                                        }{' '}
+                                        ×{' '}
+                                        {
+                                          product.name
+                                        }
+                                      </span>
+
+                                      <b>
+                                        {money(
+                                          product.price *
+                                            qty[
+                                              product
+                                                .id
+                                            ]
+                                        )}
+                                      </b>
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            ) : (
+                              <p className="muted basket-empty">
+                                Nu ai ales încă niciun
+                                produs.
+                              </p>
+                            )}
+
+                            <div className="total">
+                              <span>
+                                Total de plată
+                              </span>
+
+                              <strong>
+                                {money(total)}
+                              </strong>
+                            </div>
+
+                            <label>
+                              Numele tău
+
+                              <input
+                                required
+                                maxLength={80}
+                                disabled={
+                                  busy ||
+                                  round.closed
+                                }
+                                placeholder="Nume și prenume"
+                                value={name}
+                                onChange={event =>
+                                  setName(
+                                    event.target.value
+                                  )
+                                }
+                              />
+                            </label>
+
+                            <button
+                              className="primary wide"
+                              disabled={
+                                busy ||
+                                round.closed ||
+                                !chosen.length
+                              }
+                            >
+                              {round.closed
+                                ? 'Comanda este închisă'
+                                : busy
+                                  ? 'Se trimite…'
+                                  : 'Trimite comanda'}
+                            </button>
+
+                            <p className="small muted">
+                              Comanda apare în
+                              centralizator doar după
+                              trimitere.
+                            </p>
+                          </aside>
+                        </form>
+                      )}
+                    </TabsContent>
+
+                    {owner && (
+                      <TabsContent value="summary">
+                        <div className="stats">
+                          <div>
+                            <Users />
+                            <span>
+                              Comenzi primite
+                            </span>
+                            <strong>
+                              {orders.length}
+                            </strong>
+                          </div>
+
+                          <div>
+                            <Package />
+                            <span>
+                              Cantitate totală
+                            </span>
+                            <strong>
+                              {count}{' '}
+                              <small>buc.</small>
+                            </strong>
+                          </div>
+
+                          <div className="grand">
+                            <ShoppingBag />
+                            <span>
+                              Valoare totală
+                            </span>
+                            <strong>
+                              {money(allTotal)}
+                            </strong>
+                          </div>
+                        </div>
+
+                        <div className="summary-tools">
+                          <span className="muted">
+                            Centralizatorul comenzilor
+                            salvate
+                          </span>
+
+                          <div>
+                            <button
+                              className="secondary"
+                              disabled={busy}
+                              onClick={() =>
+                                action(
+                                  async () => {
+                                    const data =
+                                      await api(
+                                        '?id=' +
+                                          round.id
+                                      );
+
+                                    setOrders(
+                                      data.orders
+                                    );
+
+                                    setRound(
+                                      data.round
+                                    );
+                                  }
+                                )
+                              }
+                            >
+                              <RefreshCw
+                                size={16}
+                              />
+                              Actualizează
+                            </button>
+
+                            <button
+                              className="secondary"
+                              disabled={busy}
+                              onClick={() =>
+                                action(
+                                  async () => {
+                                    await api('', {
+                                      action:
+                                        'toggle',
+                                      id: round.id,
+                                      closed:
+                                        !round.closed,
+                                    });
+
+                                    setRound({
+                                      ...round,
+                                      closed:
+                                        !round.closed,
+                                    });
+                                  }
+                                )
+                              }
+                            >
+                              {round.closed
+                                ? 'Redeschide comanda'
+                                : 'Închide comanda'}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="summary-grid">
+                          <section className="panel">
+                            <h2>Pe produse</h2>
+
+                            <p className="muted">
+                              Folosește această listă
+                              pentru comanda finală.
+                            </p>
+
+                            {round.products.map(
+                              (product: Product) => {
+                                const amount =
+                                  orders.reduce(
+                                    (
+                                      sum,
+                                      order
+                                    ) =>
+                                      sum +
+                                      order.items
+                                        .filter(
+                                          (
+                                            item: any
+                                          ) =>
+                                            item.id ===
+                                            product.id
+                                        )
+                                        .reduce(
+                                          (
+                                            itemSum: number,
+                                            item: any
+                                          ) =>
+                                            itemSum +
+                                            item.qty,
+                                          0
+                                        ),
+                                    0
+                                  );
+
+                                if (!amount) {
+                                  return null;
+                                }
+
+                                return (
+                                  <div
+                                    className="summary-row"
+                                    key={
+                                      product.id
+                                    }
+                                  >
+                                    <span>
+                                      {
+                                        product.name
+                                      }
+                                    </span>
+
+                                    <b>
+                                      {amount} buc.
+                                    </b>
+
+                                    <strong>
+                                      {money(
+                                        amount *
+                                          product.price
+                                      )}
+                                    </strong>
+                                  </div>
+                                );
+                              }
+                            )}
+
+                            {round.products.some(
+                              (product: Product) =>
+                                product.dailyChoices
+                            ) && (
+                              <div className="daily-course-summary">
+                                <h3>
+                                  Meniul zilei — total
+                                  pe feluri
+                                </h3>
+
+                                <p className="small muted">
+                                  Incluse în prețul
+                                  meniului; nu se adaugă
+                                  costuri separate.
+                                </p>
+
+                                {dailyGroups.map(
+                                  group => (
+                                    <div
+                                      key={group.key}
+                                    >
+                                      <h4>
+                                        {group.label}
+                                      </h4>
+
+                                      {group.options.map(
+                                        option => {
+                                          const amount =
+                                            orders.reduce(
+                                              (
+                                                sum,
+                                                order
+                                              ) =>
+                                                sum +
+                                                order.items
+                                                  .filter(
+                                                    (
+                                                      item: Product
+                                                    ) =>
+                                                      item
+                                                        .dailyChoices?.[
+                                                        group
+                                                          .key
+                                                      ] ===
+                                                      option
+                                                  )
+                                                  .reduce(
+                                                    (
+                                                      itemSum: number,
+                                                      item: any
+                                                    ) =>
+                                                      itemSum +
+                                                      item.qty,
+                                                    0
+                                                  ),
+                                              0
+                                            );
+
+                                          return amount >
+                                            0 ? (
+                                            <p
+                                              key={
+                                                option
+                                              }
+                                            >
+                                              <span>
+                                                {
+                                                  option
+                                                }
+                                              </span>
+
+                                              <b>
+                                                {
+                                                  amount
+                                                }{' '}
+                                                buc.
+                                              </b>
+                                            </p>
+                                          ) : null;
+                                        }
+                                      )}
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            )}
+
+                            <div className="summary-row total">
+                              <b>Total</b>
+                              <b>{count} buc.</b>
+                              <strong>
+                                {money(allTotal)}
+                              </strong>
+                            </div>
+                          </section>
+
+                          <section className="panel">
+                            <h2>Pe persoane</h2>
+
+                            <p className="muted">
+                              Ce a comandat fiecare și
+                              cât are de plătit?
+                            </p>
+
+                            {orders.length ? (
+                              orders.map(order => (
+                                <article
+                                  className="person"
+                                  key={order.id}
+                                >
+                                  <div>
+                                    <span className="avatar">
+                                      {order.name
+                                        .slice(0, 1)
+                                        .toUpperCase()}
+                                    </span>
+
+                                    <b>
+                                      {order.name}
+                                    </b>
+
+                                    <strong>
+                                      {money(
+                                        order.total
+                                      )}
+                                    </strong>
+                                  </div>
+
+                                  <p>
+                                    {order.items
+                                      .map(
+                                        (
+                                          item: any
+                                        ) =>
+                                          `${item.qty} × ${item.name}`
+                                      )
+                                      .join(' · ')}
+                                  </p>
+
+                                  <div className="person-actions">
+                                    <button
+                                      className="secondary"
+                                      disabled={busy}
+                                      onClick={() =>
+                                        action(() =>
+                                          editOrder(
+                                            round.id,
+                                            order.id
+                                          )
+                                        )
+                                      }
+                                    >
+                                      Modifică
+                                    </button>
+
+                                    <button
+                                      className="secondary delete-order"
+                                      disabled={busy}
+                                      onClick={() => {
+                                        if (
+                                          !window.confirm(
+                                            'Ștergi comanda lui ' +
+                                              order.name +
+                                              '? Aceasta va fi eliminată din totaluri.'
+                                          )
+                                        ) {
+                                          return;
+                                        }
+
+                                        action(
+                                          async () => {
+                                            await api(
+                                              '',
+                                              {
+                                                action:
+                                                  'delete_order',
+                                                id: round.id,
+                                                orderId:
+                                                  order.id,
+                                                revision:
+                                                  order.revision,
+                                              }
+                                            );
+
+                                            setOrders(
+                                              previous =>
+                                                previous.filter(
+                                                  item =>
+                                                    item.id !==
+                                                    order.id
+                                                )
+                                            );
+
+                                            setNotice(
+                                              'Comanda a fost ștearsă. Totalurile au fost actualizate.'
+                                            );
+                                          }
+                                        );
+                                      }}
+                                    >
+                                      <Trash2
+                                        size={15}
+                                      />
+                                      Șterge
+                                    </button>
+                                  </div>
+                                </article>
+                              ))
+                            ) : (
+                              <div className="no-orders">
+                                Nu s-a primit încă nicio
+                                comandă.
+                                <br />
+                                Comenzile trimise vor
+                                apărea aici.
+                              </div>
+                            )}
+                          </section>
+                        </div>
+                      </TabsContent>
+                    )}
+                  </Tabs>
+                </div>
+              </>
+            )
+          ))}
+      </main>
+
+      <footer>
+        Comandă de grup{' '}
+        <span>
+          Mai puține mesaje. Comenzi mai clare.
+        </span>
+      </footer>
+    </>
+  );
 }

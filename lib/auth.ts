@@ -1,3 +1,4 @@
+// lib/auth.ts
 import { createHmac, timingSafeEqual } from 'node:crypto';
 const cookieName='comanda_admin';
 function secret(){const s=process.env.SESSION_SECRET;if(!s||s.length<32)throw Error('Configurează SESSION_SECRET (minimum 32 de caractere).');return s;}

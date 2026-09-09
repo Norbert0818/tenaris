@@ -1,3 +1,4 @@
+// components/daily-menu-picker.tsx
 'use client';
 import {useState} from 'react';
 import {dailyGroups,type DailyChoices,type OrderProduct} from '@/lib/griff-daily';

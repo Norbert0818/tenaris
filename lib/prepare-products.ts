@@ -1,8 +1,71 @@
-type Draft={name:string;price:string;image?:string;dailyMenu?:boolean};
-export function prepareProducts(products:Draft[]){
- const filled=products.filter(p=>p.dailyMenu||p.name.trim()||p.price.trim());
- if(!filled.length)throw Error('Alege un meniu, importă produse sau introdu un produs manual.');
- if(filled.length>100)throw Error('Lista poate avea maximum 100 de produse.');
- if(filled.some(p=>!p.name.trim()||p.name.length>200||!p.price.trim()||!Number.isFinite(Number(p.price.replace(',','.')))||Number(p.price.replace(',','.'))<0||Number(p.price.replace(',','.'))>100000))throw Error('Completează denumirea și prețul produselor din listă. Rândurile complet goale sunt ignorate.');
- return filled.map(p=>({name:p.name.trim(),image:p.image,dailyMenu:p.dailyMenu,price:Math.round(Number(p.price.replace(',','.'))*100)}));
+type Draft = {
+  name: string;
+  price: string;
+  image?: string;
+  section?: string;
+  category?: string;
+  dailyMenu?: boolean;
+};
+
+export function prepareProducts(products: Draft[]) {
+  const filled = products.filter(
+    product =>
+      product.dailyMenu ||
+      product.name.trim() ||
+      product.price.trim()
+  );
+
+  if (!filled.length) {
+    throw Error(
+      'Alege un meniu sau introdu cel puțin un produs.'
+    );
+  }
+
+  if (filled.length > 100) {
+    throw Error(
+      'Lista poate avea maximum 100 de produse.'
+    );
+  }
+
+  if (
+    filled.some(
+      product =>
+        !product.name.trim() ||
+        product.name.length > 200 ||
+        !product.price.trim() ||
+        !Number.isFinite(
+          Number(product.price.replace(',', '.'))
+        ) ||
+        Number(product.price.replace(',', '.')) < 0 ||
+        Number(product.price.replace(',', '.')) > 100000
+    )
+  ) {
+    throw Error(
+      'Completează denumirea și prețul produselor.'
+    );
+  }
+
+  return filled.map(product => ({
+    name: product.name.trim(),
+
+    price: Math.round(
+      Number(product.price.replace(',', '.')) * 100
+    ),
+
+    ...(product.image
+      ? { image: product.image }
+      : {}),
+
+    ...(product.section
+      ? { section: product.section.trim() }
+      : {}),
+
+    ...(product.category
+      ? { category: product.category.trim() }
+      : {}),
+
+    ...(product.dailyMenu
+      ? { dailyMenu: true }
+      : {}),
+  }));
 }

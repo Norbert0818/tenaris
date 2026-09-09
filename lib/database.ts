@@ -1,3 +1,4 @@
+// lib/database.ts
 export async function database(path:string,options:RequestInit={}){
  const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SECRET_KEY;
  if(!url||!key)throw Error('Baza de date nu este configurată. Completează variabilele Supabase în Vercel.');

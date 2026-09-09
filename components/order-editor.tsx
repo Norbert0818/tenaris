@@ -1,3 +1,4 @@
+// components/order-editor.tsx
 'use client';
 import {DailyMenuPicker} from '@/components/daily-menu-picker';
 import {type OrderProduct} from '@/lib/griff-daily';
