@@ -48,12 +48,15 @@ export function RestaurantPicker({
 }) {
   const [query, setQuery] = useState('');
 
-  const selectedIds = new Set(
-    value
-      .filter(product => !product.dailyMenu)
-      .map(product => product.presetId)
-      .filter(Boolean)
-  );
+  const selectedIds = new Set<string>(
+  value
+    .filter(product => !product.dailyMenu)
+    .map(product => product.presetId)
+    .filter(
+      (id): id is string =>
+        typeof id === 'string' && id.length > 0
+    )
+);
 
   const includeDaily = value.some(product => product.dailyMenu);
 
@@ -186,7 +189,7 @@ export function RestaurantPicker({
               checked={includeDaily}
               onChange={event =>
                 setSelection(
-                  Array.from(selectedIds) as string[],
+                  Array.from(selectedIds),
                   event.target.checked
                 )
               }
