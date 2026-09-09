@@ -1,0 +1,282 @@
+[
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/c368b719-2b75-4aca-caa4-1f1846796800/w=400,fit=scale-down,format=auto",
+    "name": "Chicken majestic",
+    "price": "35.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/f9e98519-9dee-4a42-1370-e57d9a51f700/w=400,fit=scale-down,format=auto",
+    "name": "Chicken tikka kebab",
+    "price": "35.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/da9f5016-7cd5-4fdd-71e9-1cd9110d7b00/w=400,fit=scale-down,format=auto",
+    "name": "Curry chicken cu orez",
+    "price": "35.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/04bb34fb-3d11-40d1-1279-161fe25d5f00/w=400,fit=scale-down,format=auto",
+    "name": "Fussion pasta cu pui",
+    "price": "35.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/1b70cb26-a31e-4980-8bd2-da09b8275500/w=400,fit=scale-down,format=auto",
+    "name": "Fussion pasta vegetarian",
+    "price": "35.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/a91a6cad-de70-4885-4700-1a3c00d0e300/w=400,fit=scale-down,format=auto",
+    "name": "Shangrila chicken",
+    "price": "35.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/760d94f9-405c-4358-30bf-e4ee8cfb3000/w=400,fit=scale-down,format=auto",
+    "name": "Burger Crispy",
+    "price": "42.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/263aa255-711a-418f-336b-ce5a74777f00/w=400,fit=scale-down,format=auto",
+    "name": "Crispy pui cu cartofi prăjiţi",
+    "price": "35.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/bab59460-ee49-4aab-ed49-af4ebf8c3400/w=400,fit=scale-down,format=auto",
+    "name": "Smash Burger",
+    "price": "49.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/8d719492-bcde-4fe7-b1d8-786113886b00/w=400,fit=scale-down,format=auto",
+    "name": "Smash Burger Dublu",
+    "price": "59.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/bff357f4-1688-4fb5-e4ed-cc1fa3203200/w=400,fit=scale-down,format=auto",
+    "name": "Vegan Burger",
+    "price": "42.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/d4af3556-5582-43b2-b677-604e590cea00/w=400,fit=scale-down,format=auto",
+    "name": "Ciorbă de burtă",
+    "price": "28.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/2240fa77-2700-4e7e-e3b2-f24c77925700/w=400,fit=scale-down,format=auto",
+    "name": "Ciorbă de pui a la greque",
+    "price": "28.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/de1ebdd7-dd29-4ee3-ae1f-29744a91a500/w=400,fit=scale-down,format=auto",
+    "name": "Ciorbă țărănească de vițel",
+    "price": "28.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/a1ee3ec3-d80f-449c-0eb9-fc2354c48b00/w=400,fit=scale-down,format=auto",
+    "name": "Supa cremă de ciuperci",
+    "price": "23.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/aadff516-de24-442f-99b2-fc8cf4ff3b00/w=400,fit=scale-down,format=auto",
+    "name": "Risotto cu pui",
+    "price": "44.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/cb0ecaf2-f79d-48c6-14e8-c411b374fd00/w=400,fit=scale-down,format=auto",
+    "name": "Spaghete Carbonara",
+    "price": "40.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/b91c23eb-70a2-423a-c1a6-4fb224810c00/w=400,fit=scale-down,format=auto",
+    "name": "Spaghete cu 4 feluri de brânză",
+    "price": "44.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/253b8ab6-4042-4d85-79ec-23a6a4683d00/w=400,fit=scale-down,format=auto",
+    "name": "Spaghete Milaneze",
+    "price": "40.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/e6e22ee2-8eeb-4546-5749-c4971955bb00/w=400,fit=scale-down,format=auto",
+    "name": "Tagliatelle cu somon afumat",
+    "price": "67.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/eaef1c31-bf1b-47cf-6d64-29b81374bf00/w=400,fit=scale-down,format=auto",
+    "name": "Piept de pui cu mozzarella și cartofi piure",
+    "price": "46.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/1abdb0ac-7989-423c-7e27-123bcda73b00/w=400,fit=scale-down,format=auto",
+    "name": "Piept de pui prosciutto cu cartofi copți",
+    "price": "48.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/770649d8-9cb2-42f5-c7f5-34fe716b7100/w=400,fit=scale-down,format=auto",
+    "name": "Pui teriyaki cu legume și taietei",
+    "price": "42.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/0f98fcf6-d776-432f-f181-9f650f690400/w=400,fit=scale-down,format=auto",
+    "name": "Pulpe de pui gratinate și orez",
+    "price": "40.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/e3bed01f-cae2-4d9e-d1a2-77cce4134300/w=400,fit=scale-down,format=auto",
+    "name": "Ceafa marinată cu piure de cartofi",
+    "price": "48.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/06a589a0-0732-466f-abd0-32fb2c79e500/w=400,fit=scale-down,format=auto",
+    "name": "Coaste barbeque cu cartofi copți si mix de salată",
+    "price": "60.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/b611de85-1ae1-46ca-0c6e-2e6c5110d300/w=400,fit=scale-down,format=auto",
+    "name": "Cotlet Griff cu ciuperci si cartofi gratinatti",
+    "price": "47.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/42095592-3412-4e53-119e-541e9b85b400/w=400,fit=scale-down,format=auto",
+    "name": "Mușchi de porc împănat cu piure de cartofi și sos gorgonzola",
+    "price": "52.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/caeaf5bd-24eb-47e4-c536-a2642cf6fc00/w=400,fit=scale-down,format=auto",
+    "name": "Filet mignon",
+    "price": "141.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/38fc6ec3-090a-406b-9b43-afa7f40f1300/w=400,fit=scale-down,format=auto",
+    "name": "Muşchi de vită cu sos gorgonzola",
+    "price": "145.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/51c72c64-fb57-4312-d66d-3f0cab371400/w=400,fit=scale-down,format=auto",
+    "name": "Doradă la gratar",
+    "price": "80.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/b2a24604-d1b4-4a5d-e887-7399c4304200/w=400,fit=scale-down,format=auto",
+    "name": "Somon în crustă de susan",
+    "price": "84.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/393c80ce-13ad-48f9-da60-13636aaf6f00/w=400,fit=scale-down,format=auto",
+    "name": "Chifteluțe din cartofi și dovlecel",
+    "price": "19.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/8846da9c-6074-495e-01e9-8bb652466c00/w=400,fit=scale-down,format=auto",
+    "name": "Escalop de pui cu mămăliguță",
+    "price": "38.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/34c4b977-af8d-4775-3504-ff3107729b00/w=400,fit=scale-down,format=auto",
+    "name": "Mămăliguță cu brânză și smântână",
+    "price": "27.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/1a6c68a4-2fde-480f-2644-db1a46d5b400/w=400,fit=scale-down,format=auto",
+    "name": "Mix gril porc-pui",
+    "price": "101.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/436bd713-c5aa-4a6e-0677-97694bc3b700/w=400,fit=scale-down,format=auto",
+    "name": "Orez cu legume și ciuperci",
+    "price": "19.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/48325905-6826-4fb2-d076-d50a37480900/w=400,fit=scale-down,format=auto",
+    "name": "Platou țărănesc",
+    "price": "87.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/5502e525-3e9f-42c1-b131-0614ec90b100/w=400,fit=scale-down,format=auto",
+    "name": "Tocăniță de ciuperci cu mămăliguță",
+    "price": "19.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/23fb95dd-d573-4a0a-0e8c-aca6ce8b4a00/w=400,fit=scale-down,format=auto",
+    "name": "Platou de post",
+    "price": "29.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/42bdde99-9a11-4e91-b230-1606daf9a100/w=400,fit=scale-down,format=auto",
+    "name": "Salată caesar",
+    "price": "42.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/9c7bfd3e-3316-410a-0e34-6b0cb7d9c400/w=400,fit=scale-down,format=auto",
+    "name": "Salată pui picant",
+    "price": "42.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/1973910d-7953-4995-71dc-bce91905b200/w=400,fit=scale-down,format=auto",
+    "name": "Salată ton",
+    "price": "42.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/ddda789f-4411-49fe-caa2-27d720d1c900/w=400,fit=scale-down,format=auto",
+    "name": "Brownie",
+    "price": "28.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/d910a52d-ea73-4485-75e4-ece29c91d900/w=400,fit=scale-down,format=auto",
+    "name": "Budincă clătite cu sos caramel",
+    "price": "26.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/bd10ae55-05f7-4563-f919-766e1ae06900/w=400,fit=scale-down,format=auto",
+    "name": "Cheesecake",
+    "price": "25.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/78852a7d-bd4f-4e08-affb-b4b4b2c49500/w=400,fit=scale-down,format=auto",
+    "name": "Clătite cu dulceată",
+    "price": "24.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/64fe33f0-b4d0-452e-28ee-f5da360da400/w=400,fit=scale-down,format=auto",
+    "name": "Clătite cu finetti",
+    "price": "24.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/0b22f68e-78f0-4068-9a32-bf68777b9100/w=400,fit=scale-down,format=auto",
+    "name": "Clătite cu nucă",
+    "price": "24.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/5c994b21-7d59-4b0f-d2f6-75f8f0d23300/w=400,fit=scale-down,format=auto",
+    "name": "Papanaşi",
+    "price": "28.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/f38bbf4e-4839-4e66-9e6e-6c3c48b86b00/w=400,fit=scale-down,format=auto",
+    "name": "SOS MAIONEZA PICANTA",
+    "price": "7.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/5a1eade8-bd3d-4ed6-1ab4-7debdea07c00/w=400,fit=scale-down,format=auto",
+    "name": "SOS SMASH",
+    "price": "7.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/bffdc2d0-4cc8-44f3-7cf0-b30d0f0d4300/w=400,fit=scale-down,format=auto",
+    "name": "SOS TZATZIKI",
+    "price": "7.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/627cbaec-493c-475e-80ab-0a9ff9e29700/w=400,fit=scale-down,format=auto",
+    "name": "CARTOFI PRAJITI",
+    "price": "10.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/5dfaee6f-41e1-41fa-ed90-fee7711c3c00/w=400,fit=scale-down,format=auto",
+    "name": "OREZ ALB",
+    "price": "10.00"
+  },
+  {
+    "image": "https://imagedelivery.net/C9mHCjLG8xvsJJ6bWQJL0w/e9e5cfc6-b6e5-44b9-d711-3d0d59eaac00/w=400,fit=scale-down,format=auto",
+    "name": "OREZ NEPALEZ",
+    "price": "15.00"
+  }
+]

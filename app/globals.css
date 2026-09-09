@@ -2,6 +2,12 @@
 @import "tw-animate-css";
 @import "../vendor/shadcn-tailwind-4.13.0.css";
 
+.menu-import select{display:block;width:100%;margin:8px 0 14px;padding:11px 12px;border:1px solid #cbd5e1;border-radius:8px;background:white;color:#172640;font:inherit}
+.menu-import summary{cursor:pointer;padding:5px 0}.menu-import a{color:#2858d8;text-decoration:underline}
+.food-photo{width:56px;height:56px;flex:0 0 56px;object-fit:cover;border-radius:10px;background:#edf1f7}.photo-placeholder{display:grid;place-items:center;color:#7a8799;font-size:24px}
+.preset-actions{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:14px 0;font-size:13px}.preset-list{max-height:370px;overflow:auto;border-block:1px solid #d8e0ee;margin-bottom:16px}.preset-row{display:flex!important;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #e1e7f0;font-size:14px!important;cursor:pointer}.preset-row>input{width:18px!important;height:18px;margin:0;flex:0 0 18px}.preset-row>span:not(.food-photo){flex:1;min-width:0}.preset-row>b{white-space:nowrap;font-size:12px}.daily-row{display:grid;grid-template-columns:minmax(0,1fr) 125px;gap:12px;margin:12px 0}
+@media(max-width:700px){.food-photo{width:42px;height:42px;flex-basis:42px}.preset-row{gap:7px}.daily-row{grid-template-columns:1fr}.product-row{gap:9px!important}.preset-row>b{white-space:normal;width:48px}}
+
 @utility scrollbar-thin {
   scrollbar-width: thin;
 }
