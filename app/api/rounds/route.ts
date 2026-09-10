@@ -280,31 +280,51 @@ export async function POST(req: Request) {
       'delete_order',
     ];
 
-    if(b.action==='set_paid'){
-      if(!isAdmin(req))return fail('Doar organizatorul poate modifica starea plății.',403);
-      if(!uuid(b.orderId))return fail('Comanda nu este validă.');
-      const result=await database(
-        'orders?id=eq.'+b.orderId+'&round_id=eq.'+b.id,
-        {
-          method:'PATCH',
-          body:JSON.stringify({paid:!!b.paid})
-        }
-      );
-      if(!Array.isArray(result)||!result.length)return fail('Comanda nu a fost găsită.',404);
-      return Response.json(
-        {ok:true,paid:!!b.paid},
-        {headers:{'Cache-Control':'no-store'}}
-      );
-    }
+    if (body.action === 'set_paid') {
+  if (!isAdmin(req)) {
+    return fail(
+      'Doar organizatorul poate modifica starea plății.',
+      403
+    );
+  }
 
-    if (
-      !supported.includes(body.action) ||
-      !uuid(body.orderId)
-    ) {
-      return fail(
-        'Operațiune sau identificator nevalid.'
-      );
+  if (!uuid(body.orderId)) {
+    return fail('Comanda nu este validă.');
+  }
+
+  const result = await database(
+    'orders?id=eq.' +
+      body.orderId +
+      '&round_id=eq.' +
+      body.id +
+      '&deleted=eq.false',
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        paid: !!body.paid,
+      }),
     }
+  );
+
+  if (!Array.isArray(result) || !result.length) {
+    return fail(
+      'Comanda nu a fost găsită.',
+      404
+    );
+  }
+
+  return Response.json(
+    {
+      ok: true,
+      paid: !!body.paid,
+    },
+    {
+      headers: {
+        'Cache-Control': 'no-store',
+      },
+    }
+  );
+}
 
     const admin = isAdmin(req);
 
