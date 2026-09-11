@@ -471,6 +471,69 @@ export default function Home() {
     )
   );
 
+  function getProductAmount(productId: string) {
+    return orders.reduce(
+      (sum, order) =>
+        sum +
+        order.items
+          .filter((item: any) => item.id === productId)
+          .reduce(
+            (itemSum: number, item: any) =>
+              itemSum + item.qty,
+            0
+          ),
+      0
+    );
+  }
+
+  function getSummaryGroups() {
+    const groups = new Map<
+      string,
+      {
+        section: string;
+        category: string;
+        products: Product[];
+      }
+    >();
+
+    for (const product of round?.products || []) {
+      if (product.dailyChoices) {
+        continue;
+      }
+
+      const amount = getProductAmount(product.id);
+
+      if (!amount) {
+        continue;
+      }
+
+      const section =
+        typeof product.section === 'string'
+          ? product.section
+          : '';
+
+      const category =
+        typeof product.category === 'string'
+          ? product.category
+          : '';
+
+      const key = `${section}||${category}`;
+      const existing = groups.get(key);
+
+      if (existing) {
+        existing.products.push(product);
+      } else {
+        groups.set(key, {
+          section,
+          category,
+          products: [product],
+        });
+      }
+    }
+
+    return Array.from(groups.values());
+  }
+
   function getOrderGroups(order: any) {
     const groups = new Map<
       string,
@@ -1698,65 +1761,68 @@ export default function Home() {
                               pentru comanda finală.
                             </p>
 
-                            {round.products.map(
-                              (product: Product) => {
-                                const amount =
-                                  orders.reduce(
-                                    (
-                                      sum,
-                                      order
-                                    ) =>
-                                      sum +
-                                      order.items
-                                        .filter(
-                                          (
-                                            item: any
-                                          ) =>
-                                            item.id ===
-                                            product.id
-                                        )
-                                        .reduce(
-                                          (
-                                            itemSum: number,
-                                            item: any
-                                          ) =>
-                                            itemSum +
-                                            item.qty,
-                                          0
-                                        ),
-                                    0
-                                  );
-
-                                if (!amount) {
-                                  return null;
-                                }
-
-                                return (
-                                  <div
-                                    className="summary-row"
-                                    key={
-                                      product.id
-                                    }
-                                  >
-                                    <span>
-                                      {
-                                        product.name
-                                      }
-                                    </span>
-
-                                    <b>
-                                      {amount} buc.
-                                    </b>
-
-                                    <strong>
-                                      {money(
-                                        amount *
-                                          product.price
+                            {getSummaryGroups().map(
+                              (
+                                group,
+                                groupIndex
+                              ) => (
+                                <div
+                                  className="summary-product-group"
+                                  key={`${group.section}-${group.category}-${groupIndex}`}
+                                >
+                                  {(group.section ||
+                                    group.category) && (
+                                    <div className="summary-product-category">
+                                      {group.section && (
+                                        <span className="summary-product-section">
+                                          {group.section}
+                                        </span>
                                       )}
-                                    </strong>
-                                  </div>
-                                );
-                              }
+
+                                      {group.category && (
+                                        <strong>
+                                          {group.category}
+                                        </strong>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {group.products.map(
+                                    (product: Product) => {
+                                      const amount =
+                                        getProductAmount(
+                                          product.id
+                                        );
+
+                                      return (
+                                        <div
+                                          className="summary-row"
+                                          key={
+                                            product.id
+                                          }
+                                        >
+                                          <span>
+                                            {
+                                              product.name
+                                            }
+                                          </span>
+
+                                          <b>
+                                            {amount} buc.
+                                          </b>
+
+                                          <strong>
+                                            {money(
+                                              amount *
+                                                product.price
+                                            )}
+                                          </strong>
+                                        </div>
+                                      );
+                                    }
+                                  )}
+                                </div>
+                              )
                             )}
 
                             {round.products.some(
