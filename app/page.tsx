@@ -465,6 +465,52 @@ export default function Home() {
     allTotal - paidTotal
   );
 
+  const productById = new Map<string, Product>(
+    (round?.products || []).map(
+      (product: Product) => [product.id, product]
+    )
+  );
+
+  function getOrderGroups(order: any) {
+    const groups = new Map<
+      string,
+      {
+        section: string;
+        category: string;
+        items: any[];
+      }
+    >();
+
+    for (const item of order.items || []) {
+      const product = productById.get(item.id);
+
+      const section =
+        typeof product?.section === 'string'
+          ? product.section
+          : '';
+
+      const category =
+        typeof product?.category === 'string'
+          ? product.category
+          : '';
+
+      const key = `${section}||${category}`;
+      const existing = groups.get(key);
+
+      if (existing) {
+        existing.items.push(item);
+      } else {
+        groups.set(key, {
+          section,
+          category,
+          items: [item],
+        });
+      }
+    }
+
+    return Array.from(groups.values());
+  }
+
   return (
     <>
       <header>
@@ -1841,16 +1887,47 @@ export default function Home() {
                                     </strong>
                                   </div>
 
-                                  <p>
-                                    {order.items
-                                      .map(
-                                        (
-                                          item: any
-                                        ) =>
-                                          `${item.qty} × ${item.name}`
+                                  <div className="person-order-groups">
+                                    {getOrderGroups(order).map(
+                                      (
+                                        group,
+                                        groupIndex
+                                      ) => (
+                                        <div
+                                          className="person-order-group"
+                                          key={`${group.section}-${group.category}-${groupIndex}`}
+                                        >
+                                          {(group.section ||
+                                            group.category) && (
+                                            <div className="person-order-category">
+                                              {group.section && (
+                                                <span className="person-order-section">
+                                                  {group.section}
+                                                </span>
+                                              )}
+
+                                              {group.category && (
+                                                <strong>
+                                                  {group.category}
+                                                </strong>
+                                              )}
+                                            </div>
+                                          )}
+
+                                          <p>
+                                            {group.items
+                                              .map(
+                                                (
+                                                  item: any
+                                                ) =>
+                                                  `${item.qty} × ${item.name}`
+                                              )
+                                              .join(' · ')}
+                                          </p>
+                                        </div>
                                       )
-                                      .join(' · ')}
-                                  </p>
+                                    )}
+                                  </div>
 
                                   <div className="person-actions">
                                     <button

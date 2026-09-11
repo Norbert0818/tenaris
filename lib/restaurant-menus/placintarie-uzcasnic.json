@@ -1,5 +1,76 @@
 [
   {
+    "id": "placinta-plita-branza",
+    "name": "Brânză 160 g",
+    "price": "7.00",
+    "section": "Plăcintă",
+    "category": "Pe plită"
+  },
+  {
+    "id": "placinta-plita-branza-marar",
+    "name": "Brânză și mărar 160 g",
+    "price": "7.00",
+    "section": "Plăcintă",
+    "category": "Pe plită"
+  },
+  {
+    "id": "placinta-plita-sunca-cascaval",
+    "name": "Șuncă și cașcaval 180 g",
+    "price": "8.00",
+    "section": "Plăcintă",
+    "category": "Pe plită"
+  },
+  {
+    "id": "placinta-plita-cartofi",
+    "name": "Cartofi 160 g",
+    "price": "7.00",
+    "section": "Plăcintă",
+    "category": "Pe plită"
+  },
+  {
+    "id": "placinta-plita-varza",
+    "name": "Varză 160 g",
+    "price": "7.00",
+    "section": "Plăcintă",
+    "category": "Pe plită"
+  },
+  {
+    "id": "placinta-plita-branza-smantana-mujdei",
+    "name": "Brânză Smântână Mujdei",
+    "price": "7.00",
+    "section": "Plăcintă",
+    "category":"Pe plită"
+  },
+  {
+    "id": "placinta-plita-branza-smantana",
+    "name": "Brânză și smântână",
+    "price": "7.00",
+    "section": "Plăcintă",
+    "category":"Pe plită"
+  },
+  {
+    "id": "placinta-plita-nutella",
+    "name": "Finetti 120 g",
+    "price": "7.00",
+    "section": "Plăcintă",
+    "category":"Pe plită"
+  },
+  {
+    "id": "placinta-plita-mere",
+    "name": "Mere 150g",
+    "price":"7.00",
+    "section": "Plăcintă",
+    "category":"Pe plită"
+  },
+  {
+    "id": "placinta-plita-simpla",
+    "name": "Simplă 120 g",
+    "price": "6.00",
+    "section": "Plăcintă",
+    "category": "Pe plită"
+  },
+  
+  {
     "id": "placinta-ulei-branza",
     "name": "Brânză 120 g",
     "price": "7.00",
@@ -68,85 +139,6 @@
     "price": "6.00",
     "section": "Plăcintă",
     "category": "În ulei"
-  },
-
-  {
-    "id": "placinta-post-cartofi",
-    "name": "Cartofi 120 g",
-    "price": "7.00",
-    "section": "Plăcintă",
-    "category": "De post"
-  },
-  {
-    "id": "placinta-post-varza",
-    "name": "Varză 120 g",
-    "price": "7.00",
-    "section": "Plăcintă",
-    "category": "De post"
-  },
-  {
-    "id": "placinta-post-gem",
-    "name": "Gem 120 g",
-    "price": "7.00",
-    "section": "Plăcintă",
-    "category": "De post"
-  },
-  {
-    "id": "placinta-post-mujdei",
-    "name": "Mujdei 120 g",
-    "price": "6.00",
-    "section": "Plăcintă",
-    "category": "De post"
-  },
-  {
-    "id": "placinta-post-simpla",
-    "name": "Simplă 100 g",
-    "price": "6.00",
-    "section": "Plăcintă",
-    "category": "De post"
-  },
-
-  {
-    "id": "placinta-plita-branza",
-    "name": "Brânză 160 g",
-    "price": "7.00",
-    "section": "Plăcintă",
-    "category": "Pe plită"
-  },
-  {
-    "id": "placinta-plita-branza-marar",
-    "name": "Brânză și mărar 160 g",
-    "price": "7.00",
-    "section": "Plăcintă",
-    "category": "Pe plită"
-  },
-  {
-    "id": "placinta-plita-sunca-cascaval",
-    "name": "Șuncă și cașcaval 180 g",
-    "price": "8.00",
-    "section": "Plăcintă",
-    "category": "Pe plită"
-  },
-  {
-    "id": "placinta-plita-cartofi",
-    "name": "Cartofi 160 g",
-    "price": "7.00",
-    "section": "Plăcintă",
-    "category": "Pe plită"
-  },
-  {
-    "id": "placinta-plita-varza",
-    "name": "Varză 160 g",
-    "price": "7.00",
-    "section": "Plăcintă",
-    "category": "Pe plită"
-  },
-  {
-    "id": "placinta-plita-simpla",
-    "name": "Simplă 120 g",
-    "price": "6.00",
-    "section": "Plăcintă",
-    "category": "Pe plită"
   },
 
   {
