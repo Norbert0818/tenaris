@@ -57,7 +57,7 @@ export async function GET(req: Request) {
     const records = await database(
       'rounds?id=eq.' +
         id +
-        '&select=id,title,currency,closed,products'
+        '&select=id,title,currency,closed,products,payment_recipient,payment_link'
     );
 
     if (!records.length) {
@@ -158,6 +158,61 @@ export async function POST(req: Request) {
         );
       }
 
+      const paymentRecipient =
+        typeof body.paymentRecipient === 'string'
+          ? body.paymentRecipient.trim()
+          : '';
+
+      const paymentLink =
+        typeof body.paymentLink === 'string'
+          ? body.paymentLink.trim()
+          : '';
+
+      if (
+        (paymentRecipient && !paymentLink) ||
+        (!paymentRecipient && paymentLink)
+      ) {
+        return fail(
+          'Completează atât numele beneficiarului, cât și linkul Revolut.'
+        );
+      }
+
+      if (
+        paymentRecipient.length > 80 ||
+        paymentLink.length > 500
+      ) {
+        return fail(
+          'Datele pentru plată sunt prea lungi.'
+        );
+      }
+
+      if (paymentLink) {
+        let paymentUrl: URL;
+
+        try {
+          paymentUrl = new URL(paymentLink);
+        } catch {
+          return fail(
+            'Linkul Revolut nu este valid.'
+          );
+        }
+
+        const hostname =
+          paymentUrl.hostname.toLowerCase();
+
+        if (
+          paymentUrl.protocol !== 'https:' ||
+          !(
+            hostname === 'revolut.me' ||
+            hostname.endsWith('.revolut.me')
+          )
+        ) {
+          return fail(
+            'Folosește un link Revolut.me valid, de forma https://revolut.me/nume.'
+          );
+        }
+      }
+
       if (
         body.products.filter(
           (product: any) => product.dailyMenu
@@ -197,6 +252,8 @@ export async function POST(req: Request) {
           id,
           title: body.title.trim(),
           currency: body.currency,
+          payment_recipient: paymentRecipient || null,
+          payment_link: paymentLink || null,
 
           products: expanded.map(
             (product: any) => ({

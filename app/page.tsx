@@ -108,6 +108,12 @@ export default function Home() {
   const [source, setSource] = useState('manual');
   const [restaurantProducts, setRestaurantProducts] =
     useState<DraftProduct[]>([]);
+  const [paymentRecipient, setPaymentRecipient] =
+    useState('');
+  const [paymentLink, setPaymentLink] =
+    useState('');
+  const [paymentCopied, setPaymentCopied] =
+    useState(false);
 
   const selectedRestaurant = getRestaurant(source);
 
@@ -314,10 +320,22 @@ export default function Home() {
     setSent(false);
     setName('');
     setQty({});
+    setPaymentCopied(false);
     setOrderId(crypto.randomUUID());
     setEditToken(newEditToken());
 
     history.replaceState({}, '', '?r=' + round.id);
+  }
+
+  async function copyPaymentAmount() {
+    const amount = (total / 100).toFixed(2);
+
+    await navigator.clipboard.writeText(amount);
+    setPaymentCopied(true);
+
+    window.setTimeout(() => {
+      setPaymentCopied(false);
+    }, 1600);
   }
 
   async function copyEditLink() {
@@ -365,6 +383,15 @@ export default function Home() {
 
     load();
     setNotice('');
+  }
+
+  function startCreate() {
+    setView('create');
+    setError('');
+    setNotice('');
+    setPaymentRecipient('');
+    setPaymentLink('');
+    setPaymentCopied(false);
   }
 
   function changeSource(next: string) {
@@ -682,10 +709,7 @@ export default function Home() {
               <button
                 className="primary"
                 disabled={needLogin}
-                onClick={() => {
-                  setView('create');
-                  setError('');
-                }}
+                onClick={startCreate}
               >
                 <Plus size={19} />
                 Comandă de grup nouă
@@ -824,9 +848,7 @@ export default function Home() {
 
                   <button
                     className="primary"
-                    onClick={() =>
-                      setView('create')
-                    }
+                    onClick={startCreate}
                   >
                     <Plus size={18} />
                     Creează comanda de grup
@@ -881,6 +903,17 @@ export default function Home() {
                     );
                   }
 
+                  if (
+                    (paymentRecipient.trim() &&
+                      !paymentLink.trim()) ||
+                    (!paymentRecipient.trim() &&
+                      paymentLink.trim())
+                  ) {
+                    throw Error(
+                      'Completează atât numele beneficiarului, cât și linkul Revolut.'
+                    );
+                  }
+
                   const orderCurrency =
                     selectedRestaurant?.currency ||
                     currency;
@@ -894,6 +927,8 @@ export default function Home() {
                     action: 'create',
                     title,
                     currency: orderCurrency,
+                    paymentRecipient,
+                    paymentLink,
                     products:
                       prepareProducts(orderProducts),
                   });
@@ -1007,6 +1042,60 @@ export default function Home() {
                       </SelectContent>
                     </Select>
                   </label>
+                </div>
+
+                <div className="payment-setup">
+                  <div className="section-heading">
+                    <div>
+                      <h2>Plată prin Revolut</h2>
+                      <p className="muted">
+                        Opțional. Persoana care plasează comanda
+                        finală poate introduce propriul link Revolut.me.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="payment-setup-grid">
+                    <label>
+                      Numele beneficiarului
+
+                      <input
+                        maxLength={80}
+                        value={paymentRecipient}
+                        onChange={event =>
+                          setPaymentRecipient(
+                            event.target.value
+                          )
+                        }
+                        placeholder="Ex. Norbert"
+                      />
+                    </label>
+
+                    <label>
+                      Link Revolut.me
+
+                      <input
+                        maxLength={500}
+                        type="url"
+                        inputMode="url"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        value={paymentLink}
+                        onChange={event =>
+                          setPaymentLink(
+                            event.target.value
+                          )
+                        }
+                        placeholder="https://revolut.me/nume"
+                      />
+                    </label>
+                  </div>
+
+                  <p className="small muted">
+                    Dacă completezi plata, introdu ambele câmpuri.
+                    După trimiterea comenzii, fiecare coleg va vedea
+                    suma sa exactă, codul QR și butonul pentru Revolut.
+                  </p>
                 </div>
 
                 {!selectedRestaurant && (
@@ -1446,6 +1535,89 @@ export default function Home() {
                             ))}
                           </div>
 
+                          {round.payment_link && (
+                            <div className="payment-box">
+                              <div className="payment-box-heading">
+                                <div>
+                                  <span className="payment-kicker">
+                                    PLATĂ
+                                  </span>
+
+                                  <h3>
+                                    Plătește
+                                    {round.payment_recipient
+                                      ? ` către ${round.payment_recipient}`
+                                      : ''}
+                                  </h3>
+                                </div>
+
+                                <strong>
+                                  {money(total)}
+                                </strong>
+                              </div>
+
+                              <div className="payment-box-body">
+                                <div className="payment-qr">
+                                  <img
+                                    src={
+                                      'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=' +
+                                      encodeURIComponent(
+                                        round.payment_link
+                                      )
+                                    }
+                                    alt="Cod QR pentru linkul Revolut"
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                </div>
+
+                                <div className="payment-details">
+                                  <p>
+                                    Scanează codul QR de pe alt telefon
+                                    sau deschide direct linkul Revolut.
+                                  </p>
+
+                                  <div className="payment-amount">
+                                    <span>Suma de trimis</span>
+                                    <strong>
+                                      {money(total)}
+                                    </strong>
+                                  </div>
+
+                                  <div className="payment-actions">
+                                    <button
+                                      type="button"
+                                      className="secondary"
+                                      onClick={() =>
+                                        copyPaymentAmount()
+                                      }
+                                    >
+                                      <Copy size={16} />
+                                      {paymentCopied
+                                        ? 'Sumă copiată'
+                                        : 'Copiază suma'}
+                                    </button>
+
+                                    <a
+                                      className="primary payment-link-button"
+                                      href={round.payment_link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      Deschide Revolut
+                                    </a>
+                                  </div>
+
+                                  <p className="small muted">
+                                    Linkul deschide beneficiarul.
+                                    Introdu în Revolut suma afișată mai sus
+                                    și confirmă transferul.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           <button
                             className="secondary"
                             onClick={resetOrder}
@@ -1498,6 +1670,7 @@ export default function Home() {
                                 )
                               );
 
+                              setPaymentCopied(false);
                               setSent(true);
 
                               if (owner) {

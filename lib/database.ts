@@ -1,5 +1,13 @@
 // lib/database.ts
 export async function database(path:string,options:RequestInit={}){
+    console.log('ENV CHECK', {
+  adminPassword: !!process.env.ADMIN_PASSWORD,
+  adminPasswordLength:
+    process.env.ADMIN_PASSWORD?.length,
+  sessionSecret: !!process.env.SESSION_SECRET,
+  sessionSecretLength:
+    process.env.SESSION_SECRET?.length,
+});
  const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SECRET_KEY;
  if(!url||!key)throw Error('Baza de date nu este configurată. Completează variabilele Supabase în Vercel.');
  const headers:Record<string,string>={'apikey':key,'Content-Type':'application/json','Prefer':'return=representation'};
