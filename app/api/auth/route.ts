@@ -180,5 +180,5 @@ export async function DELETE(req: Request) {
       'Set-Cookie':
         'comanda_admin=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0',
     }
-  );
+  ); 
 }
