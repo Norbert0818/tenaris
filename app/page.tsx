@@ -414,20 +414,40 @@ export default function Home() {
     imported: DraftProduct[],
     importCurrency: string
   ) {
-    const existing = products.filter(
+    const currentCurrency =
+      selectedRestaurant?.currency || currency;
+
+    const targetProducts = selectedRestaurant
+      ? restaurantProducts
+      : products;
+
+    let existing = targetProducts.filter(
       product =>
-        product.name.trim() || product.price !== ''
+        product.name.trim() ||
+        product.price !== ''
     );
+
+    const containsCustomDailyMenu =
+      imported.some(
+        product => !!product.customDailyMenu
+      );
+
+    if (containsCustomDailyMenu) {
+      existing = existing.filter(
+        product => !product.customDailyMenu
+      );
+    }
 
     if (
       existing.length &&
-      importCurrency !== currency
+      importCurrency !== currentCurrency
     ) {
       return 'Moneda diferă de lista existentă. Creează o listă nouă sau schimbă moneda; nu există conversie automată.';
     }
 
     const fresh = imported.filter(
       product =>
+        !!product.customDailyMenu ||
         !existing.some(
           existingProduct =>
             existingProduct.name === product.name &&
@@ -443,8 +463,14 @@ export default function Home() {
       return 'Produsele selectate sunt deja în listă.';
     }
 
-    setProducts([...existing, ...fresh]);
-    setCurrency(importCurrency);
+    const next = [...existing, ...fresh];
+
+    if (selectedRestaurant) {
+      setRestaurantProducts(next);
+    } else {
+      setProducts(next);
+      setCurrency(importCurrency);
+    }
 
     return null;
   }
@@ -524,7 +550,10 @@ export default function Home() {
     >();
 
     for (const product of round?.products || []) {
-      if (product.dailyChoices) {
+      if (
+        product.dailyChoices ||
+        product.customDailyChoices
+      ) {
         continue;
       }
 
@@ -559,6 +588,34 @@ export default function Home() {
     }
 
     return Array.from(groups.values());
+  }
+
+  function getCustomDailyChoiceTotals(
+    key: 'first' | 'second' | 'dessert'
+  ) {
+    const totals = new Map<string, number>();
+
+    for (const order of orders) {
+      for (const item of order.items || []) {
+        const product =
+          productById.get(item.id);
+
+        const option =
+          product?.customDailyChoices?.[key];
+
+        if (!option) {
+          continue;
+        }
+
+        totals.set(
+          option,
+          (totals.get(option) || 0) +
+            item.qty
+        );
+      }
+    }
+
+    return Array.from(totals.entries());
   }
 
   function getOrderGroups(order: any) {
@@ -988,12 +1045,13 @@ export default function Home() {
                   />
                 )}
 
-                {source === 'manual' && (
-                  <DailyMenu
-                    currency={currency}
-                    onApply={applyProducts}
-                  />
-                )}
+                <DailyMenu
+                  currency={
+                    selectedRestaurant?.currency ||
+                    currency
+                  }
+                  onApply={applyProducts}
+                />
 
                 <div className="form-top">
                   <label>
@@ -1149,7 +1207,8 @@ export default function Home() {
                             placeholder="Ex. Clătite cu cacao"
                             value={product.name}
                             disabled={
-                              product.dailyMenu
+                              product.dailyMenu ||
+                              !!product.customDailyMenu
                             }
                             onChange={event =>
                               setProducts(
@@ -1184,7 +1243,8 @@ export default function Home() {
                             placeholder="0,00"
                             value={product.price}
                             disabled={
-                              product.dailyMenu
+                              product.dailyMenu ||
+                              !!product.customDailyMenu
                             }
                             onChange={event =>
                               setProducts(
@@ -1329,11 +1389,18 @@ export default function Home() {
                       <span className="muted">
                         {round.products.filter(
                           (product: Product) =>
-                            !product.dailyChoices
+                            !product.dailyChoices &&
+                            !product.customDailyChoices
                         ).length +
                           (round.products.some(
                             (product: Product) =>
                               product.dailyChoices
+                          )
+                            ? 1
+                            : 0) +
+                          (round.products.some(
+                            (product: Product) =>
+                              product.customDailyChoices
                           )
                             ? 1
                             : 0)}{' '}
@@ -1706,6 +1773,9 @@ export default function Home() {
                               disabled={
                                 round.closed ||
                                 busy
+                              }
+                              currency={
+                                round.currency
                               }
                             />
 
@@ -2082,6 +2152,75 @@ export default function Home() {
                                     </div>
                                   )
                                 )}
+                              </div>
+                            )}
+
+                            {round.products.some(
+                              (product: Product) =>
+                                product.customDailyChoices
+                            ) && (
+                              <div className="daily-course-summary">
+                                <h3>
+                                  Meniul zilei — total pe feluri
+                                </h3>
+
+                                <p className="small muted">
+                                  „Niciunul” nu apare în totaluri.
+                                </p>
+
+                                {[
+                                  {
+                                    key: 'first' as const,
+                                    label: 'Felul 1',
+                                  },
+                                  {
+                                    key: 'second' as const,
+                                    label: 'Felul 2',
+                                  },
+                                  {
+                                    key: 'dessert' as const,
+                                    label: 'Desert',
+                                  },
+                                ].map(group => {
+                                  const totals =
+                                    getCustomDailyChoiceTotals(
+                                      group.key
+                                    );
+
+                                  return totals.length ? (
+                                    <div key={group.key}>
+                                      <h4>
+                                        {group.label}
+                                      </h4>
+
+                                      {totals.map(
+                                        ([
+                                          option,
+                                          amount,
+                                        ]) => (
+                                          <p
+                                            key={
+                                              option
+                                            }
+                                          >
+                                            <span>
+                                              {
+                                                option
+                                              }
+                                            </span>
+
+                                            <b>
+                                              {
+                                                amount
+                                              }{' '}
+                                              buc.
+                                            </b>
+                                          </p>
+                                        )
+                                      )}
+                                    </div>
+                                  ) : null;
+                                })}
                               </div>
                             )}
 

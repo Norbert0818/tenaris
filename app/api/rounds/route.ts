@@ -1,4 +1,7 @@
-import { dailyVariants } from '@/lib/griff-daily';
+import {
+  customDailyVariants,
+  dailyVariants,
+} from '@/lib/griff-daily';
 import { createHash } from 'node:crypto';
 import { database } from '@/lib/database';
 import { isAdmin, validOrigin } from '@/lib/auth';
@@ -213,6 +216,73 @@ export async function POST(req: Request) {
         }
       }
 
+      const customDailyMenus =
+        body.products.filter(
+          (product: any) =>
+            product.customDailyMenu
+        );
+
+      if (customDailyMenus.length > 1) {
+        return fail(
+          'Poți configura un singur Meniu al zilei personalizat.'
+        );
+      }
+
+      if (
+        customDailyMenus.some(
+          (product: any) => {
+            const menu =
+              product.customDailyMenu;
+
+            const validPrice = (
+              value: unknown
+            ): value is number =>
+              typeof value === 'number' &&
+              Number.isInteger(value) &&
+              value >= 0 &&
+              value <= 10000000;
+
+            const validOptions = (
+              value: unknown,
+              required: boolean
+            ) =>
+              Array.isArray(value) &&
+              value.length <= 8 &&
+              (!required ||
+                value.length >= 1) &&
+              value.every(
+                (option: unknown) =>
+                  typeof option === 'string' &&
+                  !!option.trim() &&
+                  option.length <= 120
+              );
+
+            return (
+              !menu ||
+              !validPrice(menu.fullPrice) ||
+              !validPrice(menu.firstPrice) ||
+              !validPrice(menu.secondPrice) ||
+              !validOptions(
+                menu.firstOptions,
+                true
+              ) ||
+              !validOptions(
+                menu.secondOptions,
+                true
+              ) ||
+              !validOptions(
+                menu.dessertOptions,
+                false
+              )
+            );
+          }
+        )
+      ) {
+        return fail(
+          'Configurația Meniului zilei nu este validă.'
+        );
+      }
+
       if (
         body.products.filter(
           (product: any) => product.dailyMenu
@@ -230,17 +300,21 @@ export async function POST(req: Request) {
 
       const expanded = body.products.flatMap(
         (product: any) =>
-          product.dailyMenu
-            ? dailyVariants()
-            : [
-                {
-                  name: product.name,
-                  price: product.price,
-                  image: product.image,
-                  section: product.section,
-                  category: product.category,
-                },
-              ]
+          product.customDailyMenu
+            ? customDailyVariants(
+                product.customDailyMenu
+              )
+            : product.dailyMenu
+              ? dailyVariants()
+              : [
+                  {
+                    name: product.name,
+                    price: product.price,
+                    image: product.image,
+                    section: product.section,
+                    category: product.category,
+                  },
+                ]
       );
 
       const id = crypto.randomUUID();
@@ -265,6 +339,20 @@ export async function POST(req: Request) {
                 ? {
                     dailyChoices:
                       product.dailyChoices,
+                  }
+                : {}),
+
+              ...(product.customDailyChoices
+                ? {
+                    customDailyChoices:
+                      product.customDailyChoices,
+                  }
+                : {}),
+
+              ...(product.customDailyPrices
+                ? {
+                    customDailyPrices:
+                      product.customDailyPrices,
                   }
                 : {}),
 

@@ -1,6 +1,15 @@
 import griffMenu from '@/lib/restaurant-menus/griff-menu.json';
 import placintaFastFoodMenu from '@/lib/restaurant-menus/placintarie-uzcasnic.json';
 
+export type DraftCustomDailyMenu = {
+  fullPrice: string;
+  firstPrice: string;
+  secondPrice: string;
+  firstOptions: string[];
+  secondOptions: string[];
+  dessertOptions: string[];
+};
+
 export type DraftProduct = {
   presetId?: string;
   name: string;
@@ -9,6 +18,7 @@ export type DraftProduct = {
   section?: string;
   category?: string;
   dailyMenu?: boolean;
+  customDailyMenu?: DraftCustomDailyMenu;
 };
 
 type RawMenuProduct = {

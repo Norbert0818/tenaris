@@ -48,9 +48,17 @@ export function RestaurantPicker({
 }) {
   const [query, setQuery] = useState('');
 
+  const customDailyMenus = value.filter(
+    product => !!product.customDailyMenu
+  );
+
   const selectedIds = new Set<string>(
   value
-    .filter(product => !product.dailyMenu)
+    .filter(
+      product =>
+        !product.dailyMenu &&
+        !product.customDailyMenu
+    )
     .map(product => product.presetId)
     .filter(
       (id): id is string =>
@@ -74,6 +82,7 @@ export function RestaurantPicker({
 
     onChange([
       ...selectedProducts,
+      ...customDailyMenus,
 
       ...(restaurant.griffDaily && daily
         ? [
@@ -361,204 +370,317 @@ export function DailyMenu({
     currency: string
   ) => string | null;
 }) {
-  const [mode, setMode] = useState('complete');
-  const [name, setName] = useState('');
-  const [price, setPrice] = useState('');
-  const [parts, setParts] = useState([
-    { name: '', price: '' },
-    { name: '', price: '' },
+  const [fullPrice, setFullPrice] = useState('');
+  const [firstPrice, setFirstPrice] = useState('');
+  const [secondPrice, setSecondPrice] = useState('');
+
+  const [firstOptions, setFirstOptions] = useState([
+    '',
   ]);
+
+  const [secondOptions, setSecondOptions] = useState([
+    '',
+  ]);
+
+  const [dessertOptions, setDessertOptions] = useState([
+    '',
+  ]);
+
   const [message, setMessage] = useState('');
 
+  function clean(values: string[]) {
+    return Array.from(
+      new Set(
+        values
+          .map(value => value.trim())
+          .filter(Boolean)
+      )
+    );
+  }
+
+  function validPrice(value: string) {
+    const number = Number(value.replace(',', '.'));
+
+    return (
+      value.trim() !== '' &&
+      Number.isFinite(number) &&
+      number >= 0 &&
+      number <= 100000
+    );
+  }
+
+  function updateOption(
+    values: string[],
+    setValues: (next: string[]) => void,
+    index: number,
+    nextValue: string
+  ) {
+    setValues(
+      values.map((value, i) =>
+        i === index ? nextValue : value
+      )
+    );
+  }
+
+  function removeOption(
+    values: string[],
+    setValues: (next: string[]) => void,
+    index: number
+  ) {
+    const next = values.filter(
+      (_, i) => i !== index
+    );
+
+    setValues(next.length ? next : ['']);
+  }
+
+  function addOption(
+    values: string[],
+    setValues: (next: string[]) => void
+  ) {
+    if (values.length >= 8) {
+      return;
+    }
+
+    setValues([...values, '']);
+  }
+
   function add() {
-    const rows: DraftProduct[] = [];
-
-    if (mode !== 'separate') {
-      rows.push({
-        name: 'Meniul zilei — ' + name.trim(),
-        price,
-      });
-    }
-
-    if (mode !== 'complete') {
-      rows.push(
-        ...parts
-          .filter(part => part.name.trim())
-          .map(part => ({
-            name: 'Separat — ' + part.name.trim(),
-            price: part.price,
-          }))
-      );
-    }
+    const first = clean(firstOptions);
+    const second = clean(secondOptions);
+    const desserts = clean(dessertOptions);
 
     if (
-      (mode !== 'separate' && !name.trim()) ||
-      !rows.length ||
-      rows.some(
-        product =>
-          !product.price.trim() ||
-          !Number.isFinite(Number(product.price)) ||
-          Number(product.price) < 0 ||
-          Number(product.price) > 100000 ||
-          product.name.length > 200
-      )
+      !validPrice(fullPrice) ||
+      !validPrice(firstPrice) ||
+      !validPrice(secondPrice) ||
+      !first.length ||
+      !second.length
     ) {
       setMessage(
-        'Completează denumirea și prețul fiecărei variante oferite.'
+        'Completează prețurile și adaugă cel puțin o variantă pentru Felul 1 și Felul 2.'
       );
       return;
     }
 
-    const error = onApply(rows, currency);
+    if (
+      [...first, ...second, ...desserts].some(
+        option => option.length > 120
+      )
+    ) {
+      setMessage(
+        'Denumirea unei variante este prea lungă.'
+      );
+      return;
+    }
+
+    const error = onApply(
+      [
+        {
+          name: 'Meniul zilei',
+          price: fullPrice,
+          customDailyMenu: {
+            fullPrice,
+            firstPrice,
+            secondPrice,
+            firstOptions: first,
+            secondOptions: second,
+            dessertOptions: desserts,
+          },
+        },
+      ],
+      currency
+    );
 
     setMessage(
       error ||
-        'Variantele au fost adăugate în listă.'
+        'Meniul zilei a fost adăugat / actualizat.'
+    );
+  }
+
+  function OptionGroup({
+    title,
+    values,
+    setValues,
+    placeholder,
+  }: {
+    title: string;
+    values: string[];
+    setValues: (next: string[]) => void;
+    placeholder: string;
+  }) {
+    return (
+      <div className="daily-builder-group">
+        <div className="daily-builder-group-heading">
+          <h4>{title}</h4>
+
+          <span className="small muted">
+            Max. 8 variante
+          </span>
+        </div>
+
+        {values.map((value, index) => (
+          <div
+            className="daily-builder-option"
+            key={`${title}-${index}`}
+          >
+            <input
+              maxLength={120}
+              value={value}
+              onChange={event =>
+                updateOption(
+                  values,
+                  setValues,
+                  index,
+                  event.target.value
+                )
+              }
+              placeholder={placeholder}
+            />
+
+            <button
+              type="button"
+              className="icon-button"
+              aria-label={`Șterge varianta ${index + 1}`}
+              onClick={() =>
+                removeOption(
+                  values,
+                  setValues,
+                  index
+                )
+              }
+            >
+              ×
+            </button>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          className="text-button"
+          disabled={values.length >= 8}
+          onClick={() =>
+            addOption(values, setValues)
+          }
+        >
+          + Adaugă variantă
+        </button>
+
+        <p className="small muted">
+          Opțiunea „Niciunul” se adaugă automat
+          pentru colegi.
+        </p>
+      </div>
     );
   }
 
   return (
-    <details className="menu-import">
+    <details className="menu-import daily-menu-builder">
       <summary>
-        <b>Meniul zilei — complet sau pe feluri</b>
+        <b>Configurează Meniul zilei</b>
       </summary>
 
       <p className="muted">
-        Adaugă manual variantele oferite de restaurant.
+        Colegii vor putea alege Felul 1, Felul 2 și
+        Desert. La fiecare categorie apare automat și
+        opțiunea „Niciunul”.
       </p>
 
-      <label>
-        Ce se poate comanda?
+      <div className="daily-builder-prices">
+        <label>
+          Preț meniu complet ({currency})
 
-        <select
-          value={mode}
-          onChange={event => {
-            setMode(event.target.value);
-            setMessage('');
-          }}
-        >
-          <option value="complete">
-            Doar meniul complet
-          </option>
-
-          <option value="separate">
-            Doar feluri separate
-          </option>
-
-          <option value="both">
-            Meniu complet și feluri separate
-          </option>
-        </select>
-      </label>
-
-      {mode !== 'separate' && (
-        <div className="daily-row">
-          <label>
-            Conținutul meniului
-
-            <input
-              maxLength={180}
-              value={name}
-              onChange={event =>
-                setName(event.target.value)
-              }
-              placeholder="Ciorbă + fel principal + garnitură"
-            />
-          </label>
-
-          <label>
-            Preț ({currency})
-
-            <input
-              type="number"
-              min="0"
-              max="100000"
-              step="0.01"
-              value={price}
-              onChange={event =>
-                setPrice(event.target.value)
-              }
-            />
-          </label>
-        </div>
-      )}
-
-      {mode !== 'complete' && (
-        <>
-          {parts.map((part, index) => (
-            <div className="daily-row" key={index}>
-              <label>
-                Fel separat {index + 1}
-
-                <input
-                  maxLength={180}
-                  value={part.name}
-                  onChange={event =>
-                    setParts(
-                      parts.map((value, i) =>
-                        i === index
-                          ? {
-                              ...value,
-                              name: event.target.value,
-                            }
-                          : value
-                      )
-                    )
-                  }
-                />
-              </label>
-
-              <label>
-                Preț ({currency})
-
-                <input
-                  type="number"
-                  min="0"
-                  max="100000"
-                  step="0.01"
-                  value={part.price}
-                  onChange={event =>
-                    setParts(
-                      parts.map((value, i) =>
-                        i === index
-                          ? {
-                              ...value,
-                              price: event.target.value,
-                            }
-                          : value
-                      )
-                    )
-                  }
-                />
-              </label>
-            </div>
-          ))}
-
-          <button
-            type="button"
-            className="text-button"
-            disabled={parts.length >= 10}
-            onClick={() =>
-              setParts([
-                ...parts,
-                { name: '', price: '' },
-              ])
+          <input
+            type="number"
+            min="0"
+            max="100000"
+            step="0.01"
+            value={fullPrice}
+            onChange={event =>
+              setFullPrice(event.target.value)
             }
-          >
-            + Alt fel separat
-          </button>
-        </>
-      )}
+            placeholder="Ex. 35.00"
+          />
+        </label>
+
+        <label>
+          Preț Felul 1 ({currency})
+
+          <input
+            type="number"
+            min="0"
+            max="100000"
+            step="0.01"
+            value={firstPrice}
+            onChange={event =>
+              setFirstPrice(event.target.value)
+            }
+            placeholder="Ex. 18.00"
+          />
+        </label>
+
+        <label>
+          Preț Felul 2 ({currency})
+
+          <input
+            type="number"
+            min="0"
+            max="100000"
+            step="0.01"
+            value={secondPrice}
+            onChange={event =>
+              setSecondPrice(event.target.value)
+            }
+            placeholder="Ex. 24.00"
+          />
+        </label>
+      </div>
+
+      <div className="daily-builder-options">
+        <OptionGroup
+          title="Felul 1"
+          values={firstOptions}
+          setValues={setFirstOptions}
+          placeholder="Ex. Ciorbă de pui"
+        />
+
+        <OptionGroup
+          title="Felul 2"
+          values={secondOptions}
+          setValues={setSecondOptions}
+          placeholder="Ex. Șnițel de pui cu garnitură"
+        />
+
+        <OptionGroup
+          title="Desert"
+          values={dessertOptions}
+          setValues={setDessertOptions}
+          placeholder="Ex. Clătite"
+        />
+      </div>
+
+      <div className="daily-builder-rule">
+        <strong>Cum se calculează prețul?</strong>
+
+        <p>
+          Felul 1 + Felul 2 = prețul meniului complet.
+          Dacă se alege doar un singur fel, se folosește
+          prețul acelui fel. Desertul nu are preț separat
+          și nu modifică suma.
+        </p>
+      </div>
 
       <button
         type="button"
         className="secondary"
         onClick={add}
       >
-        Adaugă variantele în listă
+        Adaugă / actualizează meniul zilei
       </button>
 
-      {message && <p role="status">{message}</p>}
+      {message && (
+        <p role="status">{message}</p>
+      )}
     </details>
   );
 }

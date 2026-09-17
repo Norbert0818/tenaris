@@ -18,7 +18,9 @@ export function GroupedProductList({
   money: (value: number) => string;
 }) {
   const fixedProducts = products.filter(
-    product => !product.dailyChoices
+    product =>
+      !product.dailyChoices &&
+      !product.customDailyChoices
   );
 
   function renderProduct(product: OrderProduct, index: number) {
