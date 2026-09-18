@@ -360,6 +360,102 @@ export function RestaurantPicker({
   );
 }
 
+
+function DailyMenuOptionGroup({
+  title,
+  values,
+  setValues,
+  placeholder,
+}: {
+  title: string;
+  values: string[];
+  setValues: (next: string[]) => void;
+  placeholder: string;
+}) {
+  function updateOption(
+    index: number,
+    nextValue: string
+  ) {
+    setValues(
+      values.map((value, i) =>
+        i === index ? nextValue : value
+      )
+    );
+  }
+
+  function removeOption(index: number) {
+    const next = values.filter(
+      (_, i) => i !== index
+    );
+
+    setValues(next.length ? next : ['']);
+  }
+
+  function addOption() {
+    if (values.length >= 8) {
+      return;
+    }
+
+    setValues([...values, '']);
+  }
+
+  return (
+    <div className="daily-builder-group">
+      <div className="daily-builder-group-heading">
+        <h4>{title}</h4>
+
+        <span className="small muted">
+          Max. 8 variante
+        </span>
+      </div>
+
+      {values.map((value, index) => (
+        <div
+          className="daily-builder-option"
+          key={`${title}-${index}`}
+        >
+          <input
+            maxLength={120}
+            value={value}
+            onChange={event =>
+              updateOption(
+                index,
+                event.target.value
+              )
+            }
+            placeholder={placeholder}
+          />
+
+          <button
+            type="button"
+            className="icon-button"
+            aria-label={`Șterge varianta ${index + 1}`}
+            onClick={() =>
+              removeOption(index)
+            }
+          >
+            ×
+          </button>
+        </div>
+      ))}
+
+      <button
+        type="button"
+        className="text-button"
+        disabled={values.length >= 8}
+        onClick={addOption}
+      >
+        + Adaugă variantă
+      </button>
+
+      <p className="small muted">
+        Opțiunea „Niciunul” se adaugă automat
+        pentru colegi.
+      </p>
+    </div>
+  );
+}
+
 export function DailyMenu({
   currency,
   onApply,
@@ -498,81 +594,6 @@ export function DailyMenu({
     );
   }
 
-  function OptionGroup({
-    title,
-    values,
-    setValues,
-    placeholder,
-  }: {
-    title: string;
-    values: string[];
-    setValues: (next: string[]) => void;
-    placeholder: string;
-  }) {
-    return (
-      <div className="daily-builder-group">
-        <div className="daily-builder-group-heading">
-          <h4>{title}</h4>
-
-          <span className="small muted">
-            Max. 8 variante
-          </span>
-        </div>
-
-        {values.map((value, index) => (
-          <div
-            className="daily-builder-option"
-            key={`${title}-${index}`}
-          >
-            <input
-              maxLength={120}
-              value={value}
-              onChange={event =>
-                updateOption(
-                  values,
-                  setValues,
-                  index,
-                  event.target.value
-                )
-              }
-              placeholder={placeholder}
-            />
-
-            <button
-              type="button"
-              className="icon-button"
-              aria-label={`Șterge varianta ${index + 1}`}
-              onClick={() =>
-                removeOption(
-                  values,
-                  setValues,
-                  index
-                )
-              }
-            >
-              ×
-            </button>
-          </div>
-        ))}
-
-        <button
-          type="button"
-          className="text-button"
-          disabled={values.length >= 8}
-          onClick={() =>
-            addOption(values, setValues)
-          }
-        >
-          + Adaugă variantă
-        </button>
-
-        <p className="small muted">
-          Opțiunea „Niciunul” se adaugă automat
-          pentru colegi.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <details className="menu-import daily-menu-builder">
@@ -637,21 +658,21 @@ export function DailyMenu({
       </div>
 
       <div className="daily-builder-options">
-        <OptionGroup
+        <DailyMenuOptionGroup
           title="Felul 1"
           values={firstOptions}
           setValues={setFirstOptions}
           placeholder="Ex. Ciorbă de pui"
         />
 
-        <OptionGroup
+        <DailyMenuOptionGroup
           title="Felul 2"
           values={secondOptions}
           setValues={setSecondOptions}
           placeholder="Ex. Șnițel de pui cu garnitură"
         />
 
-        <OptionGroup
+        <DailyMenuOptionGroup
           title="Desert"
           values={dessertOptions}
           setValues={setDessertOptions}
