@@ -1125,7 +1125,7 @@ export default function Home() {
                             event.target.value
                           )
                         }
-                        placeholder="Ex. Norbert"
+                        placeholder="Ex. Gheorghe"
                       />
                     </label>
 
