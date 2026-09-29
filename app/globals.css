@@ -648,3 +648,384 @@
     justify-content: flex-start;
   }
 }
+
+
+
+/* Organizer + restaurant summary */
+.organizer-field {
+  margin: 18px 0 0;
+}
+
+.organizer-help {
+  display: block;
+  text-align: left;
+  margin-top: 6px;
+}
+
+.round-organizer {
+  margin-top: -8px !important;
+  color: #4f5f76 !important;
+}
+
+.round-organizer-header {
+  margin: -2px 0 12px !important;
+  color: #506078 !important;
+  font-size: 14px;
+}
+
+.restaurant-summary-panel {
+  grid-column: 1 / -1;
+}
+
+.restaurant-summary-panel .section-heading {
+  margin-top: 0;
+}
+
+.restaurant-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.restaurant-summary-group {
+  border: 1px solid #e3e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  background: #fbfcfe;
+}
+
+.restaurant-summary-group h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.restaurant-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  border-top: 1px solid #edf0f5;
+  font-size: 14px;
+}
+
+.restaurant-summary-row span {
+  min-width: 0;
+}
+
+.restaurant-summary-row strong {
+  white-space: nowrap;
+}
+
+.print-restaurant-sheet {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .restaurant-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Printable order sheet */
+.print-orders-sheet {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    background: #fff !important;
+  }
+
+  body > *:not(.print-orders-sheet):not(.print-restaurant-sheet) {
+    display: none !important;
+  }
+
+  body > .print-orders-sheet,
+  body > .print-restaurant-sheet {
+    display: block !important;
+  }
+
+  .print-orders-sheet,
+  .print-restaurant-sheet {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    position: static !important;
+    inset: auto !important;
+    width: auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #111;
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .print-orders-header {
+    position: static;
+    height: auto;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 0 0 12px;
+    margin: 0 0 14px;
+    border: 0;
+    border-bottom: 2px solid #111;
+    background: #fff;
+  }
+
+  .print-orders-kicker {
+    margin: 0 0 3px;
+    font-size: 8.5pt;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #555;
+  }
+
+  .print-orders-header h1 {
+    margin: 0;
+    font-size: 20pt;
+    line-height: 1.1;
+    letter-spacing: -0.3px;
+  }
+
+  .print-orders-overview {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    white-space: nowrap;
+  }
+
+  .print-orders-overview div {
+    text-align: right;
+  }
+
+  .print-orders-overview span {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 7.5pt;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+
+  .print-orders-overview strong {
+    display: block;
+    font-size: 10pt;
+  }
+
+  .print-orders-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7mm;
+    align-items: start;
+  }
+
+  .print-person-card {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+    border: 1px solid #aaa;
+    border-radius: 3mm;
+    padding: 4mm;
+    background: #fff;
+  }
+
+  .print-person-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 3mm;
+    margin-bottom: 3mm;
+    border-bottom: 1px solid #ccc;
+  }
+
+  .print-person-heading > div:first-child {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 7px;
+  }
+
+  .print-person-number {
+    display: grid;
+    place-items: center;
+    width: 7mm;
+    height: 7mm;
+    flex: 0 0 7mm;
+    border: 1px solid #888;
+    border-radius: 50%;
+    font-size: 8pt;
+    font-weight: 700;
+  }
+
+  .print-person-heading h2 {
+    margin: 0;
+    font-size: 11pt;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .print-person-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .print-person-meta > strong {
+    font-size: 10pt;
+  }
+
+  .print-payment-status {
+    display: inline-block;
+    padding: 1px 5px;
+    border: 1px solid #999;
+    border-radius: 999px;
+    font-size: 6.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .print-payment-status.paid {
+    border-color: #333;
+    background: #eee;
+  }
+
+  .print-order-group + .print-order-group {
+    margin-top: 3mm;
+    padding-top: 3mm;
+    border-top: 1px dotted #bbb;
+  }
+
+  .print-order-category {
+    display: flex;
+    gap: 5px;
+    align-items: baseline;
+    margin-bottom: 1.5mm;
+    font-size: 7pt;
+    color: #555;
+  }
+
+  .print-order-category span {
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+
+  .print-order-category b {
+    color: #222;
+  }
+
+  .print-person-items ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .print-person-items li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 1.2mm 0;
+    font-size: 8.5pt;
+    line-height: 1.25;
+  }
+
+  .print-person-items li span {
+    overflow-wrap: anywhere;
+  }
+
+  .print-person-items li b {
+    white-space: nowrap;
+  }
+
+  .print-orders-footer {
+    position: static;
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin: 8mm 0 0;
+    padding: 3mm 0 0;
+    border-top: 2px solid #111;
+    color: #111;
+    font-size: 9pt;
+  }
+
+  .print-restaurant-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 7mm;
+    padding-bottom: 4mm;
+    border-bottom: 2px solid #111;
+  }
+
+  .print-restaurant-header h1 {
+    margin: 0;
+    font-size: 20pt;
+    line-height: 1.1;
+  }
+
+  .print-restaurant-organizer {
+    margin: 2mm 0 0;
+    font-size: 8.5pt;
+    color: #555;
+  }
+
+  .print-restaurant-meta {
+    display: flex;
+    gap: 10mm;
+    align-items: baseline;
+    white-space: nowrap;
+    font-size: 9pt;
+  }
+
+  .print-restaurant-groups {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6mm;
+    align-items: start;
+  }
+
+  .print-restaurant-group {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+    border: 1px solid #aaa;
+    border-radius: 2mm;
+    padding: 4mm;
+  }
+
+  .print-restaurant-group h2 {
+    margin: 0 0 2.5mm;
+    padding-bottom: 2mm;
+    border-bottom: 1px solid #ccc;
+    font-size: 10pt;
+  }
+
+  .print-restaurant-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6mm;
+    padding: 1.4mm 0;
+    font-size: 8.5pt;
+    line-height: 1.25;
+  }
+
+  .print-restaurant-row strong {
+    white-space: nowrap;
+  }
+
+}

@@ -1,7 +1,8 @@
 // app/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 import {
   RestaurantPicker,
@@ -37,6 +38,8 @@ import {
   Users,
   Package,
   RefreshCw,
+  Printer,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 import {
@@ -73,12 +76,92 @@ const examples = [
   'Clătite cu mac',
 ];
 
+type ExcelCell = string | number;
+
+function xmlEscape(value: unknown) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function excelWorksheet(
+  name: string,
+  rows: ExcelCell[][]
+) {
+  const body = rows
+    .map(row => {
+      const cells = row
+        .map(value => {
+          const isNumber =
+            typeof value === 'number' &&
+            Number.isFinite(value);
+
+          return (
+            '<Cell><Data ss:Type="' +
+            (isNumber ? 'Number' : 'String') +
+            '">' +
+            xmlEscape(value) +
+            '</Data></Cell>'
+          );
+        })
+        .join('');
+
+      return '<Row>' + cells + '</Row>';
+    })
+    .join('');
+
+  return (
+    '<Worksheet ss:Name="' +
+    xmlEscape(name.slice(0, 31)) +
+    '"><Table>' +
+    body +
+    '</Table></Worksheet>'
+  );
+}
+
+function safeFileName(value: string) {
+  const cleaned = value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9-_]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 70);
+
+  return cleaned || 'comanda';
+}
+
+function PrintPortal({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
+
+  return createPortal(
+    children,
+    document.body
+  );
+}
+
 export default function Home() {
   const [view, setView] = useState('home');
   const [rounds, setRounds] = useState<any[]>([]);
   const [round, setRound] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [owner, setOwner] = useState(false);
+  const [admin, setAdmin] = useState(false);
+  const [myRounds, setMyRounds] = useState<any[]>([]);
   const [tab, setTab] = useState('order');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -86,6 +169,8 @@ export default function Home() {
   const [notice, setNotice] = useState('');
 
   const [title, setTitle] = useState('');
+  const [organizerName, setOrganizerName] =
+    useState('');
   const [currency, setCurrency] = useState('RON');
   const [products, setProducts] = useState<DraftProduct[]>([]);
   const [name, setName] = useState('');
@@ -114,6 +199,9 @@ export default function Home() {
     useState('');
   const [paymentCopied, setPaymentCopied] =
     useState(false);
+  const [printMode, setPrintMode] = useState<
+    'people' | 'restaurant' | null
+  >(null);
 
   const selectedRestaurant = getRestaurant(source);
 
@@ -126,30 +214,322 @@ export default function Home() {
       currency: selectedCurrency,
     }).format(value / 100);
 
+  function readRoundOwnerToken(
+    roundId?: string | null
+  ) {
+    if (!roundId) {
+      return '';
+    }
+
+    try {
+      const token =
+        localStorage.getItem(
+          'comanda:owner:' + roundId
+        ) || '';
+
+      return /^[a-f0-9]{64}$/i.test(token)
+        ? token
+        : '';
+    } catch {
+      return '';
+    }
+  }
+
+  function readCreatedRounds() {
+    try {
+      const value = JSON.parse(
+        localStorage.getItem(
+          'comanda:created-rounds'
+        ) || '[]'
+      );
+
+      return Array.isArray(value)
+        ? value.filter(
+            item =>
+              item &&
+              typeof item.id === 'string' &&
+              typeof item.title === 'string'
+          )
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function forgetCreatedRound(id: string) {
+    try {
+      localStorage.removeItem(
+        'comanda:owner:' + id
+      );
+
+      localStorage.removeItem(
+        'comanda:edit:' + id
+      );
+
+      const next =
+        readCreatedRounds().filter(
+          item => item.id !== id
+        );
+
+      localStorage.setItem(
+        'comanda:created-rounds',
+        JSON.stringify(next)
+      );
+
+      setMyRounds(next);
+
+      return next;
+    } catch {
+      return [];
+    }
+  }
+
+  async function syncCreatedRounds() {
+    const saved = readCreatedRounds();
+
+    if (!saved.length) {
+      setMyRounds([]);
+      return [];
+    }
+
+    const results = await Promise.all(
+      saved.map(async item => {
+        const token =
+          readRoundOwnerToken(item.id);
+
+        const headers:
+          Record<string, string> = {};
+
+        if (token) {
+          headers['X-Owner-Token'] =
+            token;
+        }
+
+        try {
+          const response = await fetch(
+            '/api/rounds?id=' +
+              encodeURIComponent(
+                item.id
+              ) +
+              '&check=1',
+            {
+              cache: 'no-store',
+              headers,
+            }
+          );
+
+          if (
+            response.status === 404 ||
+            response.status === 403
+          ) {
+            return {
+              keep: false,
+              id: item.id,
+              item,
+            };
+          }
+
+          if (!response.ok) {
+            // Temporary backend/network problem:
+            // keep the local entry instead of
+            // deleting it by mistake.
+            return {
+              keep: true,
+              id: item.id,
+              item,
+            };
+          }
+
+          const data =
+            await response.json();
+
+          if (
+            !data?.exists ||
+            !data?.round
+          ) {
+            return {
+              keep: false,
+              id: item.id,
+              item,
+            };
+          }
+
+          return {
+            keep: true,
+            id: item.id,
+            item: {
+              ...item,
+              title:
+                data.round.title ||
+                item.title,
+              currency:
+                data.round.currency ||
+                item.currency,
+              organizerName:
+                data.round.organizer_name ||
+                item.organizerName ||
+                '',
+              created:
+                data.round.created ||
+                item.created,
+            },
+          };
+        } catch {
+          // Offline / temporary failure:
+          // do not delete local data.
+          return {
+            keep: true,
+            id: item.id,
+            item,
+          };
+        }
+      })
+    );
+
+    const staleIds = results
+      .filter(result => !result.keep)
+      .map(result => result.id);
+
+    try {
+      for (const id of staleIds) {
+        localStorage.removeItem(
+          'comanda:owner:' + id
+        );
+
+        localStorage.removeItem(
+          'comanda:edit:' + id
+        );
+      }
+
+      const next = results
+        .filter(result => result.keep)
+        .map(result => result.item)
+        .slice(0, 30);
+
+      localStorage.setItem(
+        'comanda:created-rounds',
+        JSON.stringify(next)
+      );
+
+      setMyRounds(next);
+
+      return next;
+    } catch {
+      const next = results
+        .filter(result => result.keep)
+        .map(result => result.item)
+        .slice(0, 30);
+
+      setMyRounds(next);
+      return next;
+    }
+  }
+
+  function rememberCreatedRound(
+    id: string,
+    ownerToken: string,
+    roundTitle: string,
+    roundCurrency: string,
+    organizer: string
+  ) {
+    try {
+      localStorage.setItem(
+        'comanda:owner:' + id,
+        ownerToken
+      );
+
+      const previous = readCreatedRounds().filter(
+        item => item.id !== id
+      );
+
+      const next = [
+        {
+          id,
+          title: roundTitle,
+          currency: roundCurrency,
+          organizerName: organizer,
+          created: new Date().toISOString(),
+        },
+        ...previous,
+      ].slice(0, 30);
+
+      localStorage.setItem(
+        'comanda:created-rounds',
+        JSON.stringify(next)
+      );
+
+      setMyRounds(next);
+    } catch {}
+  }
+
+  function requestRoundId(
+    path: string,
+    body?: any
+  ) {
+    if (
+      body &&
+      typeof body.id === 'string'
+    ) {
+      return body.id;
+    }
+
+    if (path.startsWith('?')) {
+      return new URLSearchParams(
+        path.slice(1)
+      ).get('id');
+    }
+
+    return null;
+  }
+
   async function api(path = '', body?: any) {
+    const roundId = requestRoundId(
+      path,
+      body
+    );
+
+    const ownerToken =
+      readRoundOwnerToken(roundId);
+
+    const headers: Record<string, string> = {};
+
+    if (body) {
+      headers['Content-Type'] =
+        'application/json';
+    }
+
+    if (ownerToken) {
+      headers['X-Owner-Token'] =
+        ownerToken;
+    }
+
     const response = await fetch(
       '/api/rounds' + path,
       body
         ? {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify(body),
           }
         : {
             cache: 'no-store',
+            headers,
           }
     );
 
     const data = await response.json();
 
-    if (response.status === 401) {
-      setNeedLogin(true);
-    }
-
     if (!response.ok) {
-      throw Error(data.error || 'A apărut o eroare.');
+      const requestError: Error & {
+        status?: number;
+      } = new Error(
+        data.error || 'A apărut o eroare.'
+      );
+
+      requestError.status =
+        response.status;
+
+      throw requestError;
     }
 
     return data;
@@ -165,6 +545,7 @@ export default function Home() {
       );
 
       setNeedLogin(false);
+      setAdmin(!!data.isAdmin);
 
       if (id) {
         setRound(data.round);
@@ -172,11 +553,40 @@ export default function Home() {
         setOwner(data.isOwner);
         setView('round');
       } else {
-        setRounds(data.rounds);
+        setRounds(data.rounds || []);
+        await syncCreatedRounds();
+        setOwner(false);
         setView('home');
       }
     } catch (e: any) {
-      setError(e.message);
+      if (
+        id &&
+        (e?.status === 404 ||
+          e?.status === 403)
+      ) {
+        forgetCreatedRound(id);
+
+        history.replaceState(
+          {},
+          '',
+          '/'
+        );
+
+        setRound(null);
+        setOrders([]);
+        setOwner(false);
+        setView('home');
+
+        setNotice(
+          e?.status === 404
+            ? 'Comanda nu mai există și a fost eliminată din lista locală.'
+            : 'Nu mai ai acces de organizator la această comandă. A fost eliminată din lista ta.'
+        );
+
+        await syncCreatedRounds();
+      } else {
+        setError(e.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -389,6 +799,7 @@ export default function Home() {
     setView('create');
     setError('');
     setNotice('');
+    setOrganizerName('');
     setPaymentRecipient('');
     setPaymentLink('');
     setPaymentCopied(false);
@@ -474,6 +885,22 @@ export default function Home() {
 
     return null;
   }
+
+  useEffect(() => {
+    const clearPrintMode = () =>
+      setPrintMode(null);
+
+    window.addEventListener(
+      'afterprint',
+      clearPrintMode
+    );
+
+    return () =>
+      window.removeEventListener(
+        'afterprint',
+        clearPrintMode
+      );
+  }, []);
 
   const chosen: Product[] =
     round?.products.filter(
@@ -658,6 +1085,347 @@ export default function Home() {
     return Array.from(groups.values());
   }
 
+  function getRestaurantSummaryGroups() {
+    const groups = new Map<
+      string,
+      Map<string, number>
+    >();
+
+    function add(
+      group: string,
+      itemName: string,
+      qtyValue: number
+    ) {
+      if (!itemName || qtyValue <= 0) {
+        return;
+      }
+
+      const items =
+        groups.get(group) ||
+        new Map<string, number>();
+
+      items.set(
+        itemName,
+        (items.get(itemName) || 0) +
+          qtyValue
+      );
+
+      groups.set(group, items);
+    }
+
+    for (const order of orders) {
+      for (const item of order.items || []) {
+        const product =
+          productById.get(item.id);
+
+        if (!product) {
+          continue;
+        }
+
+        if (product.dailyChoices) {
+          for (const group of dailyGroups) {
+            const option =
+              product.dailyChoices[group.key];
+
+            if (option) {
+              add(
+                `Meniul zilei · ${group.label}`,
+                option,
+                item.qty
+              );
+            }
+          }
+
+          continue;
+        }
+
+        if (product.customDailyChoices) {
+          if (
+            product.customDailyChoices.first
+          ) {
+            add(
+              'Meniul zilei · Felul 1',
+              product.customDailyChoices.first,
+              item.qty
+            );
+          }
+
+          if (
+            product.customDailyChoices.second
+          ) {
+            add(
+              'Meniul zilei · Felul 2',
+              product.customDailyChoices.second,
+              item.qty
+            );
+          }
+
+          if (
+            product.customDailyChoices.dessert
+          ) {
+            add(
+              'Meniul zilei · Desert',
+              product.customDailyChoices.dessert,
+              item.qty
+            );
+          }
+
+          continue;
+        }
+
+        const groupName =
+          [
+            product.section,
+            product.category,
+          ]
+            .filter(Boolean)
+            .join(' · ') || 'Produse';
+
+        add(
+          groupName,
+          product.name,
+          item.qty
+        );
+      }
+    }
+
+    return Array.from(
+      groups.entries()
+    ).map(([label, items]) => ({
+      label,
+      items: Array.from(items.entries())
+        .map(([name, qtyValue]) => ({
+          name,
+          qty: qtyValue,
+        }))
+        .sort((left, right) =>
+          left.name.localeCompare(
+            right.name,
+            'ro'
+          )
+        ),
+    }));
+  }
+
+  function buildRestaurantMessage() {
+    const lines: string[] = [
+      '*COMANDĂ PENTRU RESTAURANT*',
+      `*${round.title}*`,
+    ];
+
+    if (round.organizer_name) {
+      lines.push(
+        `Organizator: ${round.organizer_name}`
+      );
+    }
+
+    lines.push(
+      `Persoane: ${orders.length}`,
+      ''
+    );
+
+    for (
+      const group of getRestaurantSummaryGroups()
+    ) {
+      lines.push(
+        `*${group.label.toUpperCase()}*`
+      );
+
+      for (const item of group.items) {
+        lines.push(
+          `• ${item.name} — ${item.qty} buc.`
+        );
+      }
+
+      lines.push('');
+    }
+
+    lines.push(
+      `*Total comandă: ${money(allTotal)}*`
+    );
+
+    return lines.join('\n').trim();
+  }
+
+  async function copyRestaurantMessage() {
+    const message =
+      buildRestaurantMessage();
+
+    try {
+      if (
+        navigator.clipboard &&
+        window.isSecureContext
+      ) {
+        await navigator.clipboard.writeText(
+          message
+        );
+      } else {
+        const textarea =
+          document.createElement('textarea');
+
+        textarea.value = message;
+        textarea.setAttribute(
+          'readonly',
+          ''
+        );
+
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+
+        document.body.appendChild(
+          textarea
+        );
+
+        textarea.select();
+
+        const copied =
+          document.execCommand('copy');
+
+        textarea.remove();
+
+        if (!copied) {
+          throw new Error(
+            'Copierea nu a reușit.'
+          );
+        }
+      }
+
+      setNotice(
+        'Rezumatul pentru restaurant a fost copiat. Îl poți lipi acum în WhatsApp.'
+      );
+    } catch {
+      throw Error(
+        'Nu am putut copia textul. Încearcă din nou.'
+      );
+    }
+  }
+
+  function startPrint(
+    mode: 'people' | 'restaurant'
+  ) {
+    setPrintMode(mode);
+
+    window.setTimeout(() => {
+      window.print();
+    }, 80);
+  }
+
+  function exportExcel() {
+    const peopleRows: ExcelCell[][] = [
+      [
+        'Nume',
+        'Produs',
+        'Cantitate',
+        'Preț unitar',
+        'Subtotal',
+        'Monedă',
+        'Plătit',
+      ],
+    ];
+
+    for (const order of orders) {
+      for (const item of order.items || []) {
+        const product =
+          productById.get(item.id);
+
+        const unitPrice =
+          product?.price || 0;
+
+        peopleRows.push([
+          order.name,
+          product?.name ||
+            item.name ||
+            'Produs',
+          item.qty,
+          unitPrice / 100,
+          (unitPrice * item.qty) / 100,
+          round.currency,
+          order.paid ? 'Da' : 'Nu',
+        ]);
+      }
+    }
+
+    const restaurantRows: ExcelCell[][] = [
+      ['Categorie', 'Produs / preparat', 'Cantitate'],
+    ];
+
+    for (
+      const group of getRestaurantSummaryGroups()
+    ) {
+      for (const item of group.items) {
+        restaurantRows.push([
+          group.label,
+          item.name,
+          item.qty,
+        ]);
+      }
+    }
+
+    const summaryRows: ExcelCell[][] = [
+      ['Comandă', round.title],
+      [
+        'Organizator',
+        round.organizer_name || '',
+      ],
+      ['Monedă', round.currency],
+      ['Persoane', orders.length],
+      ['Cantitate totală', count],
+      ['Total', allTotal / 100],
+      ['Plătit', paidTotal / 100],
+      [
+        'Rămas de plată',
+        remainingTotal / 100,
+      ],
+    ];
+
+    const workbook =
+      '<?xml version="1.0" encoding="UTF-8"?>' +
+      '<?mso-application progid="Excel.Sheet"?>' +
+      '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" ' +
+      'xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+      'xmlns:x="urn:schemas-microsoft-com:office:excel" ' +
+      'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">' +
+      excelWorksheet(
+        'Rezumat',
+        summaryRows
+      ) +
+      excelWorksheet(
+        'Pe persoane',
+        peopleRows
+      ) +
+      excelWorksheet(
+        'Pentru restaurant',
+        restaurantRows
+      ) +
+      '</Workbook>';
+
+    const blob = new Blob(
+      ['\ufeff' + workbook],
+      {
+        type:
+          'application/vnd.ms-excel;charset=utf-8',
+      }
+    );
+
+    const url =
+      URL.createObjectURL(blob);
+
+    const link =
+      document.createElement('a');
+
+    link.href = url;
+    link.download =
+      'centralizator-' +
+      safeFileName(round.title) +
+      '.xls';
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <>
       <header>
@@ -686,7 +1454,7 @@ export default function Home() {
           Comenzile echipei, într-un singur loc
         </span>
 
-        {!needLogin && view === 'home' && (
+        {admin && view === 'home' && (
           <button
             className="text-button"
             onClick={() =>
@@ -695,11 +1463,13 @@ export default function Home() {
                   method: 'DELETE',
                 });
 
+                setAdmin(false);
+                setNeedLogin(false);
                 await load();
               })
             }
           >
-            Ieșire organizator
+            Ieșire administrator
           </button>
         )}
       </header>
@@ -711,7 +1481,7 @@ export default function Home() {
             onClick={home}
           >
             <ArrowLeft size={16} />
-            Comenzile mele de grup
+            Înapoi la pagina principală
           </button>
         )}
 
@@ -765,7 +1535,6 @@ export default function Home() {
 
               <button
                 className="primary"
-                disabled={needLogin}
                 onClick={startCreate}
               >
                 <Plus size={19} />
@@ -809,17 +1578,17 @@ export default function Home() {
                   });
                 }}
               >
-                <h2>Acces organizator</h2>
+                <h2>Acces administrator</h2>
 
                 <p className="muted">
-                  Introdu parola pentru a crea comenzi și
-                  a vedea centralizatorul. Colegii
-                  comandă direct prin link, fără
-                  autentificare.
+                  Parola este doar pentru administrator.
+                  Administratorul vede toate comenzile și
+                  toate centralizatoarele. Oricine poate
+                  crea o comandă fără parolă.
                 </p>
 
                 <label>
-                  Parola organizatorului
+                  Parola administratorului
 
                   <input
                     required
@@ -832,75 +1601,95 @@ export default function Home() {
                   />
                 </label>
 
-                <button
-                  className="primary wide"
+                <div
+                  className="editor-buttons"
                   style={{ marginTop: 20 }}
-                  disabled={busy}
                 >
-                  {busy
-                    ? 'Se verifică…'
-                    : 'Intră'}
-                </button>
+                  <button
+                    className="primary"
+                    disabled={busy}
+                  >
+                    {busy
+                      ? 'Se verifică…'
+                      : 'Intră ca administrator'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      setNeedLogin(false);
+                      setPassword('');
+                      setError('');
+                    }}
+                  >
+                    Renunță
+                  </button>
+                </div>
               </form>
             ) : loading ? (
               <div className="panel muted">
-                Se încarcă comenzile de grup…
+                Se încarcă…
               </div>
-            ) : rounds.length ? (
-              <div className="round-grid">
-                {rounds.map(item => (
-                  <button
-                    className="round-card"
-                    key={item.id}
-                    onClick={() => open(item.id)}
-                  >
-                    <span className="round-icon">
-                      <ClipboardList />
-                    </span>
-
-                    <span
-                      className={
-                        'badge ' +
-                        (item.closed ? 'closed' : '')
-                      }
+            ) : admin ? (
+              rounds.length ? (
+                <div className="round-grid">
+                  {rounds.map(item => (
+                    <button
+                      className="round-card"
+                      key={item.id}
+                      onClick={() => open(item.id)}
                     >
-                      {item.closed
-                        ? 'Închisă'
-                        : 'Deschisă'}
-                    </span>
+                      <span className="round-icon">
+                        <ClipboardList />
+                      </span>
 
-                    <h2>{item.title}</h2>
+                      <span
+                        className={
+                          'badge ' +
+                          (item.closed ? 'closed' : '')
+                        }
+                      >
+                        {item.closed
+                          ? 'Închisă'
+                          : 'Deschisă'}
+                      </span>
 
-                    <p>
-                      {new Date(
-                        item.created
-                      ).toLocaleDateString('ro-RO')}{' '}
-                      · {item.currency}
-                    </p>
+                      <h2>{item.title}</h2>
 
-                    <span className="card-link">
-                      Comandă și centralizator →
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              !error && (
+                      <p>
+                        {new Date(
+                          item.created
+                        ).toLocaleDateString('ro-RO')}{' '}
+                        · {item.currency}
+                      </p>
+
+                      {item.organizer_name && (
+                        <p className="round-organizer">
+                          Organizator: {item.organizer_name}
+                        </p>
+                      )}
+
+                      <span className="card-link">
+                        Comandă și centralizator →
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
                 <section className="empty panel">
                   <span className="empty-icon">
                     <ClipboardList size={36} />
                   </span>
 
                   <h2>
-                    Prima comandă de grup începe aici.
+                    Nu există încă nicio comandă.
                   </h2>
 
                   <p>
-                    Clătite, prânz sau rechizite de
-                    birou?
-                    <br />
-                    Tu adaugi produsele, fiecare alege ce
-                    dorește.
+                    Poți crea prima comandă de grup fără
+                    alte setări.
                   </p>
 
                   <button
@@ -910,22 +1699,133 @@ export default function Home() {
                     <Plus size={18} />
                     Creează comanda de grup
                   </button>
-
-                  <div className="steps">
-                    <span>
-                      <b>01</b> Produse și prețuri
-                    </span>
-
-                    <span>
-                      <b>02</b> Nume și cantitate
-                    </span>
-
-                    <span>
-                      <b>03</b> Centralizator automat
-                    </span>
-                  </div>
                 </section>
               )
+            ) : (
+              <>
+                {myRounds.length > 0 ? (
+                  <>
+                    <div className="section-heading">
+                      <div>
+                        <h2>Comenzile create de tine</h2>
+                        <p className="muted">
+                          Aceste comenzi pot fi administrate
+                          de pe acest browser.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="round-grid">
+                      {myRounds.map(item => (
+                        <button
+                          className="round-card"
+                          key={item.id}
+                          onClick={() => open(item.id)}
+                        >
+                          <span className="round-icon">
+                            <ClipboardList />
+                          </span>
+
+                          <span className="badge">
+                            Creată de tine
+                          </span>
+
+                          <h2>{item.title}</h2>
+
+                          <p>
+                            {item.created
+                              ? new Date(
+                                  item.created
+                                ).toLocaleDateString(
+                                  'ro-RO'
+                                )
+                              : ''}
+                            {item.currency
+                              ? ` · ${item.currency}`
+                              : ''}
+                          </p>
+
+                          {item.organizerName && (
+                            <p className="round-organizer">
+                              Organizator: {item.organizerName}
+                            </p>
+                          )}
+
+                          <span className="card-link">
+                            Deschide centralizatorul →
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <section className="empty panel">
+                    <span className="empty-icon">
+                      <ClipboardList size={36} />
+                    </span>
+
+                    <h2>
+                      Prima comandă de grup începe aici.
+                    </h2>
+
+                    <p>
+                      Creezi comanda fără cont și fără
+                      parolă. După creare, acest browser
+                      primește automat acces la
+                      centralizator.
+                    </p>
+
+                    <button
+                      className="primary"
+                      onClick={startCreate}
+                    >
+                      <Plus size={18} />
+                      Creează comanda de grup
+                    </button>
+
+                    <div className="steps">
+                      <span>
+                        <b>01</b> Produse și prețuri
+                      </span>
+
+                      <span>
+                        <b>02</b> Distribuie linkul
+                      </span>
+
+                      <span>
+                        <b>03</b> Vezi centralizatorul
+                      </span>
+                    </div>
+                  </section>
+                )}
+
+                <section
+                  className="panel"
+                  style={{
+                    maxWidth: 520,
+                    marginTop: 24,
+                  }}
+                >
+                  <h2>Administrator</h2>
+
+                  <p className="muted">
+                    Autentificarea este necesară doar
+                    pentru accesul la toate comenzile
+                    create în aplicație.
+                  </p>
+
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => {
+                      setNeedLogin(true);
+                      setError('');
+                    }}
+                  >
+                    Acces administrator
+                  </button>
+                </section>
+              </>
             )}
           </>
         )}
@@ -960,6 +1860,12 @@ export default function Home() {
                     );
                   }
 
+                  if (!organizerName.trim()) {
+                    throw Error(
+                      'Completează numele organizatorului.'
+                    );
+                  }
+
                   if (
                     (paymentRecipient.trim() &&
                       !paymentLink.trim()) ||
@@ -983,12 +1889,32 @@ export default function Home() {
                   const data = await api('', {
                     action: 'create',
                     title,
+                    organizerName,
                     currency: orderCurrency,
                     paymentRecipient,
                     paymentLink,
                     products:
                       prepareProducts(orderProducts),
                   });
+
+                  if (
+                    typeof data.ownerToken !== 'string' ||
+                    !/^[a-f0-9]{64}$/i.test(
+                      data.ownerToken
+                    )
+                  ) {
+                    throw Error(
+                      'Comanda a fost creată, dar accesul organizatorului nu a putut fi salvat.'
+                    );
+                  }
+
+                  rememberCreatedRound(
+                    data.id,
+                    data.ownerToken,
+                    title.trim(),
+                    orderCurrency,
+                    organizerName.trim()
+                  );
 
                   open(data.id);
                   setTab('summary');
@@ -1101,6 +2027,27 @@ export default function Home() {
                     </Select>
                   </label>
                 </div>
+
+                <label className="organizer-field">
+                  Numele organizatorului
+
+                  <input
+                    required
+                    maxLength={80}
+                    value={organizerName}
+                    onChange={event =>
+                      setOrganizerName(
+                        event.target.value
+                      )
+                    }
+                    placeholder="Ex. Andrei"
+                  />
+
+                  <span className="small muted organizer-help">
+                    Va apărea în comandă, astfel încât colegii
+                    să știe cine o organizează.
+                  </span>
+                </label>
 
                 <div className="payment-setup">
                   <div className="section-heading">
@@ -1371,6 +2318,13 @@ export default function Home() {
                     </p>
 
                     <h1>{round.title}</h1>
+
+                    {round.organizer_name && (
+                      <p className="round-organizer-header">
+                        <strong>Organizator:</strong>{' '}
+                        {round.organizer_name}
+                      </p>
+                    )}
 
                     <p>
                       <span
@@ -1992,8 +2946,325 @@ export default function Home() {
                                 ? 'Redeschide comanda'
                                 : 'Închide comanda'}
                             </button>
+
+                            <button
+                              className="secondary print-orders-button"
+                              type="button"
+                              disabled={
+                                busy ||
+                                !orders.length
+                              }
+                              onClick={() =>
+                                startPrint('people')
+                              }
+                            >
+                              <Printer size={16} />
+                              Tipărește comenzile
+                            </button>
+
+                            <button
+                              className="secondary"
+                              type="button"
+                              disabled={
+                                busy ||
+                                !orders.length
+                              }
+                              onClick={() =>
+                                action(
+                                  copyRestaurantMessage
+                                )
+                              }
+                            >
+                              <Copy size={16} />
+                              Copiază pentru WhatsApp
+                            </button>
+
+                            <button
+                              className="secondary"
+                              type="button"
+                              disabled={
+                                busy ||
+                                !orders.length
+                              }
+                              onClick={exportExcel}
+                            >
+                              <FileSpreadsheet
+                                size={16}
+                              />
+                              Export Excel
+                            </button>
                           </div>
                         </div>
+
+                        {printMode === 'people' && (
+                          <PrintPortal>
+                            <section
+                          className="print-orders-sheet"
+                          aria-label="Comenzi pentru tipărire"
+                        >
+                          <header className="print-orders-header">
+                            <div>
+                              <p className="print-orders-kicker">
+                                COMANDĂ DE GRUP
+                              </p>
+
+                              <h1>
+                                {round.title}
+                              </h1>
+
+                              {round.organizer_name && (
+                                <p className="print-restaurant-organizer">
+                                  Organizator:{' '}
+                                  {round.organizer_name}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="print-orders-overview">
+                              <div>
+                                <span>Persoane</span>
+                                <strong>
+                                  {orders.length}
+                                </strong>
+                              </div>
+
+                              <div>
+                                <span>Cantitate</span>
+                                <strong>
+                                  {count} buc.
+                                </strong>
+                              </div>
+
+                              <div>
+                                <span>Total</span>
+                                <strong>
+                                  {money(allTotal)}
+                                </strong>
+                              </div>
+                            </div>
+                          </header>
+
+                          <div className="print-orders-list">
+                            {orders.map(
+                              (order, orderIndex) => (
+                                <article
+                                  className="print-person-card"
+                                  key={
+                                    'print-' +
+                                    order.id
+                                  }
+                                >
+                                  <div className="print-person-heading">
+                                    <div>
+                                      <span className="print-person-number">
+                                        {orderIndex + 1}
+                                      </span>
+
+                                      <h2>
+                                        {order.name}
+                                      </h2>
+                                    </div>
+
+                                    <div className="print-person-meta">
+                                      <span
+                                        className={
+                                          order.paid
+                                            ? 'print-payment-status paid'
+                                            : 'print-payment-status'
+                                        }
+                                      >
+                                        {order.paid
+                                          ? 'Plătit'
+                                          : 'Neplătit'}
+                                      </span>
+
+                                      <strong>
+                                        {money(
+                                          order.total
+                                        )}
+                                      </strong>
+                                    </div>
+                                  </div>
+
+                                  <div className="print-person-items">
+                                    {getOrderGroups(
+                                      order
+                                    ).map(
+                                      (
+                                        group,
+                                        groupIndex
+                                      ) => (
+                                        <div
+                                          className="print-order-group"
+                                          key={`${group.section}-${group.category}-${groupIndex}`}
+                                        >
+                                          {(group.section ||
+                                            group.category) && (
+                                            <div className="print-order-category">
+                                              {group.section && (
+                                                <span>
+                                                  {
+                                                    group.section
+                                                  }
+                                                </span>
+                                              )}
+
+                                              {group.category && (
+                                                <b>
+                                                  {
+                                                    group.category
+                                                  }
+                                                </b>
+                                              )}
+                                            </div>
+                                          )}
+
+                                          <ul>
+                                            {group.items.map(
+                                              (
+                                                item: any,
+                                                itemIndex: number
+                                              ) => (
+                                                <li
+                                                  key={`${item.name}-${itemIndex}`}
+                                                >
+                                                  <span>
+                                                    {
+                                                      item.name
+                                                    }
+                                                  </span>
+
+                                                  <b>
+                                                    {
+                                                      item.qty
+                                                    }{' '}
+                                                    ×
+                                                  </b>
+                                                </li>
+                                              )
+                                            )}
+                                          </ul>
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                </article>
+                              )
+                            )}
+                          </div>
+
+                          <footer className="print-orders-footer">
+                            <span>
+                              {orders.length}{' '}
+                              persoane
+                            </span>
+
+                            <strong>
+                              Total:{' '}
+                              {money(allTotal)}
+                            </strong>
+                          </footer>
+                            </section>
+                          </PrintPortal>
+                        )}
+
+                        {printMode ===
+                          'restaurant' && (
+                          <PrintPortal>
+                            <section
+                              className="print-restaurant-sheet"
+                              aria-label="Rezumat pentru restaurant"
+                            >
+                              <header className="print-restaurant-header">
+                                <div>
+                                  <p className="print-orders-kicker">
+                                    PENTRU RESTAURANT
+                                  </p>
+
+                                  <h1>
+                                    {round.title}
+                                  </h1>
+
+                                  {round.organizer_name && (
+                                    <p className="print-restaurant-organizer">
+                                      Organizator:{' '}
+                                      {
+                                        round.organizer_name
+                                      }
+                                    </p>
+                                  )}
+                                </div>
+
+                                <div className="print-restaurant-meta">
+                                  <span>
+                                    {orders.length}{' '}
+                                    persoane
+                                  </span>
+
+                                  <strong>
+                                    {count} buc.
+                                  </strong>
+                                </div>
+                              </header>
+
+                              <div className="print-restaurant-groups">
+                                {getRestaurantSummaryGroups().map(
+                                  group => (
+                                    <section
+                                      className="print-restaurant-group"
+                                      key={
+                                        group.label
+                                      }
+                                    >
+                                      <h2>
+                                        {
+                                          group.label
+                                        }
+                                      </h2>
+
+                                      {group.items.map(
+                                        item => (
+                                          <div
+                                            className="print-restaurant-row"
+                                            key={
+                                              item.name
+                                            }
+                                          >
+                                            <span>
+                                              {
+                                                item.name
+                                              }
+                                            </span>
+
+                                            <strong>
+                                              {
+                                                item.qty
+                                              }{' '}
+                                              buc.
+                                            </strong>
+                                          </div>
+                                        )
+                                      )}
+                                    </section>
+                                  )
+                                )}
+                              </div>
+
+                              <footer className="print-orders-footer">
+                                <span>
+                                  Fără numele colegilor
+                                </span>
+
+                                <strong>
+                                  Total comandă:{' '}
+                                  {money(
+                                    allTotal
+                                  )}
+                                </strong>
+                              </footer>
+                            </section>
+                          </PrintPortal>
+                        )}
 
                         <div className="summary-grid">
                           <section className="panel">
@@ -2482,6 +3753,86 @@ export default function Home() {
                                 </div>
                               </div>
                             )}
+                          </section>
+
+                          <section className="panel restaurant-summary-panel">
+                            <div className="section-heading">
+                              <div>
+                                <h2>
+                                  Rezumat pentru restaurant
+                                </h2>
+
+                                <p className="muted">
+                                  Doar preparatele și cantitățile,
+                                  fără numele colegilor.
+                                </p>
+                              </div>
+
+                              <button
+                                type="button"
+                                className="secondary"
+                                disabled={
+                                  busy ||
+                                  !orders.length
+                                }
+                                onClick={() =>
+                                  action(
+                                    copyRestaurantMessage
+                                  )
+                                }
+                              >
+                                <Copy size={16} />
+                                Copiază pentru WhatsApp
+                              </button>
+                            </div>
+
+                            <div className="restaurant-summary-grid">
+                              {getRestaurantSummaryGroups().map(
+                                group => (
+                                  <div
+                                    className="restaurant-summary-group"
+                                    key={
+                                      group.label
+                                    }
+                                  >
+                                    <h3>
+                                      {group.label}
+                                    </h3>
+
+                                    {group.items.map(
+                                      item => (
+                                        <div
+                                          className="restaurant-summary-row"
+                                          key={
+                                            item.name
+                                          }
+                                        >
+                                          <span>
+                                            {
+                                              item.name
+                                            }
+                                          </span>
+
+                                          <strong>
+                                            {
+                                              item.qty
+                                            }{' '}
+                                            buc.
+                                          </strong>
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                )
+                              )}
+
+                              {!orders.length && (
+                                <p className="muted">
+                                  Nu există încă produse de
+                                  centralizat.
+                                </p>
+                              )}
+                            </div>
                           </section>
                         </div>
                       </TabsContent>

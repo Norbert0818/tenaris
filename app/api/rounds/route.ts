@@ -2,7 +2,11 @@ import {
   customDailyVariants,
   dailyVariants,
 } from '@/lib/griff-daily';
-import { createHash } from 'node:crypto';
+import {
+  createHash,
+  randomBytes,
+  timingSafeEqual,
+} from 'node:crypto';
 import { database } from '@/lib/database';
 import { isAdmin, validOrigin } from '@/lib/auth';
 
@@ -26,25 +30,90 @@ const uuid = (value: unknown): value is string =>
     value
   );
 
+const ownerToken = (req: Request) =>
+  req.headers.get('x-owner-token')?.trim() || '';
+
+const hashOwnerToken = (token: string) =>
+  createHash('sha256').update(token).digest('hex');
+
+const sameHex = (left: string, right: string) => {
+  if (
+    !/^[a-f0-9]{64}$/i.test(left) ||
+    !/^[a-f0-9]{64}$/i.test(right)
+  ) {
+    return false;
+  }
+
+  return timingSafeEqual(
+    Buffer.from(left, 'hex'),
+    Buffer.from(right, 'hex')
+  );
+};
+
+const hasOwnerAccess = (
+  req: Request,
+  expectedHash: unknown
+) => {
+  const token = ownerToken(req);
+
+  if (
+    !/^[a-f0-9]{64}$/i.test(token) ||
+    typeof expectedHash !== 'string'
+  ) {
+    return false;
+  }
+
+  return sameHex(
+    hashOwnerToken(token),
+    expectedHash
+  );
+};
+
+async function canManageRound(
+  req: Request,
+  id: string,
+  admin = isAdmin(req)
+) {
+  if (admin) {
+    return true;
+  }
+
+  const records = await database(
+    'rounds?id=eq.' +
+      id +
+      '&select=owner_token_hash'
+  );
+
+  return (
+    Array.isArray(records) &&
+    records.length > 0 &&
+    hasOwnerAccess(
+      req,
+      records[0]?.owner_token_hash
+    )
+  );
+}
+
 export async function GET(req: Request) {
   try {
-    const id = new URL(req.url).searchParams.get('id');
+    const url = new URL(req.url);
+    const id = url.searchParams.get('id');
+    const checkOnly =
+      url.searchParams.get('check') === '1';
     const admin = isAdmin(req);
 
     if (!id) {
-      if (!admin) {
-        return fail(
-          'Autentifică-te ca organizator pentru a gestiona comenzile.',
-          401
-        );
-      }
-
-      const rounds = await database(
-        'rounds?select=id,title,currency,closed,created&order=created.desc'
-      );
+      const rounds = admin
+        ? await database(
+            'rounds?select=id,title,currency,closed,created,organizer_name&order=created.desc'
+          )
+        : [];
 
       return Response.json(
-        { rounds },
+        {
+          rounds,
+          isAdmin: admin,
+        },
         {
           headers: {
             'Cache-Control': 'no-store',
@@ -57,23 +126,95 @@ export async function GET(req: Request) {
       return fail('Link de comandă nevalid.', 404);
     }
 
+    if (checkOnly) {
+      const records = await database(
+        'rounds?id=eq.' +
+          id +
+          '&select=id,title,currency,created,organizer_name,owner_token_hash'
+      );
+
+      if (!records.length) {
+        return fail(
+          'Comanda nu a fost găsită.',
+          404
+        );
+      }
+
+      const record = records[0];
+
+      const creator = hasOwnerAccess(
+        req,
+        record.owner_token_hash
+      );
+
+      if (!admin && !creator) {
+        return fail(
+          'Nu mai ai acces de organizator la această comandă.',
+          403
+        );
+      }
+
+      return Response.json(
+        {
+          exists: true,
+          isAdmin: admin,
+          isOwner: admin || creator,
+          round: {
+            id: record.id,
+            title: record.title,
+            currency: record.currency,
+            created: record.created,
+            organizer_name:
+              record.organizer_name,
+          },
+        },
+        {
+          headers: {
+            'Cache-Control': 'no-store',
+          },
+        }
+      );
+    }
+
     const records = await database(
       'rounds?id=eq.' +
         id +
-        '&select=id,title,currency,closed,products,payment_recipient,payment_link'
+        '&select=id,title,currency,closed,products,payment_recipient,payment_link,organizer_name,owner_token_hash'
     );
 
     if (!records.length) {
       return fail('Comanda nu a fost găsită.', 404);
     }
 
-    const orders=admin?await database('orders?round_id=eq.'+id+'&deleted=eq.false&select=id,name,items,total,created,revision,paid&order=created.desc'):[];
+    const record = records[0];
+
+    const creator =
+      hasOwnerAccess(
+        req,
+        record.owner_token_hash
+      );
+
+    const canManage = admin || creator;
+
+    const orders = canManage
+      ? await database(
+          'orders?round_id=eq.' +
+            id +
+            '&deleted=eq.false&select=id,name,items,total,created,revision,paid&order=created.desc'
+        )
+      : [];
+
+    const {
+      owner_token_hash: _ownerTokenHash,
+      ...publicRound
+    } = record;
 
     return Response.json(
       {
-        round: records[0],
+        round: publicRound,
         orders,
-        isOwner: admin,
+        isOwner: canManage,
+        isAdmin: admin,
       },
       {
         headers: {
@@ -106,10 +247,17 @@ export async function POST(req: Request) {
     const body = JSON.parse(raw);
 
     if (body.action === 'create') {
-      if (!isAdmin(req)) {
+      const organizerName =
+        typeof body.organizerName === 'string'
+          ? body.organizerName.trim()
+          : '';
+
+      if (
+        !organizerName ||
+        organizerName.length > 80
+      ) {
         return fail(
-          'Autentifică-te ca organizator.',
-          401
+          'Completează numele organizatorului (maximum 80 de caractere).'
         );
       }
 
@@ -318,6 +466,10 @@ export async function POST(req: Request) {
       );
 
       const id = crypto.randomUUID();
+      const roundOwnerToken =
+        randomBytes(32).toString('hex');
+      const roundOwnerTokenHash =
+        hashOwnerToken(roundOwnerToken);
 
       await database('rounds', {
         method: 'POST',
@@ -325,9 +477,11 @@ export async function POST(req: Request) {
         body: JSON.stringify({
           id,
           title: body.title.trim(),
+          organizer_name: organizerName,
           currency: body.currency,
           payment_recipient: paymentRecipient || null,
           payment_link: paymentLink || null,
+          owner_token_hash: roundOwnerTokenHash,
 
           products: expanded.map(
             (product: any) => ({
@@ -390,15 +544,25 @@ export async function POST(req: Request) {
         }),
       });
 
-      return Response.json({ id });
+      return Response.json({
+        id,
+        ownerToken: roundOwnerToken,
+      });
     }
 
     if (!uuid(body.id)) {
       return fail('Link de comandă nevalid.');
     }
 
+    const admin = isAdmin(req);
+    const canManage = await canManageRound(
+      req,
+      body.id,
+      admin
+    );
+
     if (body.action === 'toggle') {
-      if (!isAdmin(req)) {
+      if (!canManage) {
         return fail(
           'Doar organizatorul poate modifica această comandă.',
           403
@@ -426,7 +590,7 @@ export async function POST(req: Request) {
     ];
 
     if (body.action === 'set_paid') {
-  if (!isAdmin(req)) {
+  if (!canManage) {
     return fail(
       'Doar organizatorul poate modifica starea plății.',
       403
@@ -471,15 +635,13 @@ export async function POST(req: Request) {
   );
 }
 
-    const admin = isAdmin(req);
-
     const tokenValid =
       typeof body.editToken === 'string' &&
       /^[a-f0-9]{64}$/.test(body.editToken);
 
     if (
       body.action === 'delete_order' &&
-      !admin
+      !canManage
     ) {
       return fail(
         'Doar organizatorul poate șterge comanda.',
@@ -488,7 +650,7 @@ export async function POST(req: Request) {
     }
 
     if (
-      (body.action === 'order' || !admin) &&
+      (body.action === 'order' || !canManage) &&
       !tokenValid
     ) {
       return fail(
@@ -563,7 +725,7 @@ export async function POST(req: Request) {
                 .digest('hex')
             : null,
 
-          p_admin: admin,
+          p_admin: canManage,
           p_revision: body.revision ?? null,
         }),
       }
