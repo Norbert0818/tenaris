@@ -2,70 +2,70 @@
   {
     "id": "placinta-plita-branza",
     "name": "Brânză 160 g",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category": "Pe plită"
   },
   {
     "id": "placinta-plita-branza-marar",
     "name": "Brânză și mărar 160 g",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category": "Pe plită"
   },
   {
     "id": "placinta-plita-sunca-cascaval",
     "name": "Șuncă și cașcaval 180 g",
-    "price": "8.00",
+    "price": "9.00",
     "section": "Plăcintă",
     "category": "Pe plită"
   },
   {
     "id": "placinta-plita-cartofi",
     "name": "Cartofi 160 g",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category": "Pe plită"
   },
   {
     "id": "placinta-plita-varza",
     "name": "Varză 160 g",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category": "Pe plită"
   },
   {
     "id": "placinta-plita-branza-smantana-mujdei",
     "name": "Brânză Smântână Mujdei",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category":"Pe plită"
   },
   {
     "id": "placinta-plita-branza-smantana",
     "name": "Brânză și smântână",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category":"Pe plită"
   },
   {
     "id": "placinta-plita-nutella",
     "name": "Finetti 120 g",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category":"Pe plită"
   },
   {
     "id": "placinta-plita-mere",
     "name": "Mere 150g",
-    "price":"7.00",
+    "price":"8.00",
     "section": "Plăcintă",
     "category":"Pe plită"
   },
   {
     "id": "placinta-plita-simpla",
     "name": "Simplă 120 g",
-    "price": "6.00",
+    "price": "7.00",
     "section": "Plăcintă",
     "category": "Pe plită"
   },
@@ -73,77 +73,77 @@
   {
     "id": "placinta-ulei-branza",
     "name": "Brânză 120 g",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category": "În ulei"
   },
   {
     "id": "placinta-ulei-branza-smantana",
     "name": "Brânză și smântână 130 g",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category": "În ulei"
   },
   {
     "id": "placinta-ulei-branza-mujdei",
     "name": "Brânză și mujdei 120 g",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category": "În ulei"
   },
   {
     "id": "placinta-ulei-branza-smantana-mujdei",
     "name": "Brânză smântână și mujdei 120 g",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category": "În ulei"
   },
   {
     "id": "placinta-ulei-branza-marar",
     "name": "Brânză și mărar 120 g",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category": "În ulei"
   },
   {
     "id": "placinta-ulei-cartofi",
     "name": "Cartofi 120 g",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category": "În ulei"
   },
   {
     "id": "placinta-ulei-varza",
     "name": "Varză 120 g",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category": "În ulei"
   },
   {
     "id": "placinta-ulei-finetti",
     "name": "Finetti 120 g",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category": "În ulei"
   },
   {
     "id": "placinta-ulei-gem",
     "name": "Gem 120 g",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category": "În ulei"
   },
   {
     "id": "placinta-ulei-mujdei",
     "name": "Mujdei 120 g",
-    "price": "7.00",
+    "price": "8.00",
     "section": "Plăcintă",
     "category": "În ulei"
   },
   {
     "id": "placinta-ulei-simpla",
     "name": "Simplă 100 g",
-    "price": "6.00",
+    "price": "7.00",
     "section": "Plăcintă",
     "category": "În ulei"
   },
@@ -151,105 +151,105 @@
   {
     "id": "fast-sandwich-simplu",
     "name": "Sandwich simplu",
-    "price": "8.00",
+    "price": "9.00",
     "section": "Fast-food",
     "category": "Produse standard"
   },
   {
     "id": "fast-sandwich-salata",
     "name": "Sandwich cu salată",
-    "price": "9.00",
+    "price": "10.00",
     "section": "Fast-food",
     "category": "Produse standard"
   },
   {
     "id": "fast-hamburger-vegetarian",
     "name": "Hamburger vegetarian",
-    "price": "9.00",
+    "price": "10.00",
     "section": "Fast-food",
     "category": "Produse standard"
   },
   {
     "id": "fast-hamburger-clasic",
     "name": "Hamburger clasic",
-    "price": "11.00",
+    "price": "12.00",
     "section": "Fast-food",
     "category": "Produse standard"
   },
   {
     "id": "fast-cheeseburger",
     "name": "Cheeseburger",
-    "price": "12.00",
+    "price": "13.00",
     "section": "Fast-food",
     "category": "Produse standard"
   },
   {
     "id": "fast-hamburger-sunca",
     "name": "Hamburger cu șuncă",
-    "price": "11.00",
+    "price": "12.00",
     "section": "Fast-food",
     "category": "Produse standard"
   },
   {
     "id": "fast-hamburger-ciuperci",
     "name": "Hamburger cu ciuperci",
-    "price": "10.00",
+    "price": "11.00",
     "section": "Fast-food",
     "category": "Produse standard"
   },
   {
     "id": "fast-kebab",
     "name": "Kebab",
-    "price": "14.00",
+    "price": "15.00",
     "section": "Fast-food",
     "category": "Produse standard"
   },
   {
     "id": "fast-hamburger-dublu",
     "name": "Hamburger dublu",
-    "price": "14.00",
+    "price": "15.00",
     "section": "Fast-food",
     "category": "Produse standard"
   },
   {
     "id": "fast-hamburger-snitel",
     "name": "Hamburger cu șnițel",
-    "price": "14.00",
+    "price": "15.00",
     "section": "Fast-food",
     "category": "Produse standard"
   },
   {
     "id": "fast-hotdog-simplu",
     "name": "Hot-dog simplu",
-    "price": "9.00",
+    "price": "10.00",
     "section": "Fast-food",
     "category": "Produse standard"
   },
   {
     "id": "fast-hotdog-salata",
     "name": "Hot-dog cu salată",
-    "price": "10.00",
+    "price": "11.00",
     "section": "Fast-food",
     "category": "Produse standard"
   },
   {
     "id": "fast-hotdog-cascaval",
     "name": "Hot-dog cu cașcaval",
-    "price": "11.00",
+    "price": "12.00",
     "section": "Fast-food",
     "category": "Produse standard"
   },
   {
     "id": "fast-hotdog-ciuperci",
     "name": "Hot-dog cu ciuperci",
-    "price": "12.00",
+    "price": "13.00",
     "section": "Fast-food",
     "category": "Produse standard"
   },
   {
     "id": "fast-shaorma",
     "name": "Shaorma",
-    "price": "17.00",
+    "price": "18.00",
     "section": "Fast-food",
     "category": "Produse standard"
   },
@@ -257,14 +257,14 @@
   {
     "id": "fast-post-hamburger-ciuperci",
     "name": "Hamburger cu ciuperci",
-    "price": "10.00",
+    "price": "11.00",
     "section": "Fast-food",
     "category": "Produse de post"
   },
   {
     "id": "fast-post-hamburger-vegetarian",
     "name": "Hamburger vegetarian",
-    "price": "9.00",
+    "price": "10.00",
     "section": "Fast-food",
     "category": "Produse de post"
   }
