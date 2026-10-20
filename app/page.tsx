@@ -40,6 +40,8 @@ import {
   RefreshCw,
   Printer,
   FileSpreadsheet,
+  Banknote,
+  CreditCard,
 } from 'lucide-react';
 
 import {
@@ -3619,212 +3621,224 @@ export default function Home() {
                                   </div>
 
                                   <div className="person-actions">
-                                    {order.paid ? (
-                                      <>
-                                        <span
-                                          className={
-                                            'payment-method-status ' +
-                                            (order.payment_method ===
+                                    <div className="payment-control">
+                                      {order.paid ? (
+                                        <>
+                                          <span
+                                            className={
+                                              'payment-method-status ' +
+                                              (order.payment_method ===
+                                              'cash'
+                                                ? 'cash'
+                                                : order.payment_method ===
+                                                    'card'
+                                                  ? 'card'
+                                                  : 'legacy')
+                                            }
+                                          >
+                                            <Check size={15} />
+
+                                            {order.payment_method ===
                                             'cash'
-                                              ? 'cash'
+                                              ? 'Plătit · Numerar'
                                               : order.payment_method ===
                                                   'card'
-                                                ? 'card'
-                                                : 'legacy')
-                                          }
-                                        >
-                                          <Check size={15} />
-                                          {order.payment_method ===
-                                          'cash'
-                                            ? 'Plătit · Numerar'
-                                            : order.payment_method ===
-                                                'card'
-                                              ? 'Plătit · Transfer/card'
-                                              : 'Plătit'}
-                                        </span>
+                                                ? 'Plătit · Transfer/card'
+                                                : 'Plătit'}
+                                          </span>
 
-                                        <button
-                                          className="secondary payment-unmark"
-                                          disabled={busy}
-                                          onClick={() =>
-                                            action(async () => {
-                                              await api('', {
-                                                action:
-                                                  'set_paid',
-                                                id: round.id,
-                                                orderId:
-                                                  order.id,
-                                                paid: false,
-                                              });
+                                          <button
+                                            type="button"
+                                            className="payment-unmark"
+                                            disabled={busy}
+                                            onClick={() =>
+                                              action(async () => {
+                                                await api('', {
+                                                  action:
+                                                    'set_paid',
+                                                  id: round.id,
+                                                  orderId:
+                                                    order.id,
+                                                  paid: false,
+                                                });
 
-                                              setOrders(
-                                                previous =>
-                                                  previous.map(
-                                                    item =>
-                                                      item.id ===
-                                                      order.id
-                                                        ? {
-                                                            ...item,
-                                                            paid: false,
-                                                            payment_method:
-                                                              null,
-                                                          }
-                                                        : item
-                                                  )
-                                              );
-                                            })
-                                          }
-                                        >
-                                          Anulează plata
-                                        </button>
-                                      </>
-                                    ) : (
-                                      <div className="payment-method-actions">
-                                        <span className="payment-method-label">
-                                          Marchează plătit:
-                                        </span>
+                                                setOrders(
+                                                  previous =>
+                                                    previous.map(
+                                                      item =>
+                                                        item.id ===
+                                                        order.id
+                                                          ? {
+                                                              ...item,
+                                                              paid: false,
+                                                              payment_method:
+                                                                null,
+                                                            }
+                                                          : item
+                                                    )
+                                                );
+                                              })
+                                            }
+                                          >
+                                            Anulează
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span className="payment-method-label">
+                                            Plată
+                                          </span>
 
-                                        <button
-                                          className="secondary payment-method-button cash"
-                                          disabled={busy}
-                                          onClick={() =>
-                                            action(async () => {
-                                              await api('', {
-                                                action:
-                                                  'set_paid',
-                                                id: round.id,
-                                                orderId:
-                                                  order.id,
-                                                paid: true,
-                                                paymentMethod:
-                                                  'cash',
-                                              });
+                                          <div className="payment-method-actions">
+                                            <button
+                                              type="button"
+                                              className="payment-method-button cash"
+                                              disabled={busy}
+                                              onClick={() =>
+                                                action(async () => {
+                                                  await api('', {
+                                                    action:
+                                                      'set_paid',
+                                                    id: round.id,
+                                                    orderId:
+                                                      order.id,
+                                                    paid: true,
+                                                    paymentMethod:
+                                                      'cash',
+                                                  });
 
-                                              setOrders(
-                                                previous =>
-                                                  previous.map(
-                                                    item =>
-                                                      item.id ===
-                                                      order.id
-                                                        ? {
-                                                            ...item,
-                                                            paid: true,
-                                                            payment_method:
-                                                              'cash',
-                                                          }
-                                                        : item
-                                                  )
-                                              );
-                                            })
-                                          }
-                                        >
-                                          Numerar
-                                        </button>
-
-                                        <button
-                                          className="secondary payment-method-button card"
-                                          disabled={busy}
-                                          onClick={() =>
-                                            action(async () => {
-                                              await api('', {
-                                                action:
-                                                  'set_paid',
-                                                id: round.id,
-                                                orderId:
-                                                  order.id,
-                                                paid: true,
-                                                paymentMethod:
-                                                  'card',
-                                              });
-
-                                              setOrders(
-                                                previous =>
-                                                  previous.map(
-                                                    item =>
-                                                      item.id ===
-                                                      order.id
-                                                        ? {
-                                                            ...item,
-                                                            paid: true,
-                                                            payment_method:
-                                                              'card',
-                                                          }
-                                                        : item
-                                                  )
-                                              );
-                                            })
-                                          }
-                                        >
-                                          Transfer / card
-                                        </button>
-                                      </div>
-                                    )}
-
-                                    <button
-                                      className="secondary"
-                                      disabled={busy}
-                                      onClick={() =>
-                                        action(() =>
-                                          editOrder(
-                                            round.id,
-                                            order.id
-                                          )
-                                        )
-                                      }
-                                    >
-                                      Modifică
-                                    </button>
-
-                                    <button
-                                      className="secondary delete-order"
-                                      disabled={busy}
-                                      onClick={() => {
-                                        if (
-                                          !window.confirm(
-                                            'Ștergi comanda lui ' +
-                                              order.name +
-                                              '? Aceasta va fi eliminată din totaluri.'
-                                          )
-                                        ) {
-                                          return;
-                                        }
-
-                                        action(
-                                          async () => {
-                                            await api(
-                                              '',
-                                              {
-                                                action:
-                                                  'delete_order',
-                                                id: round.id,
-                                                orderId:
-                                                  order.id,
-                                                revision:
-                                                  order.revision,
+                                                  setOrders(
+                                                    previous =>
+                                                      previous.map(
+                                                        item =>
+                                                          item.id ===
+                                                          order.id
+                                                            ? {
+                                                                ...item,
+                                                                paid: true,
+                                                                payment_method:
+                                                                  'cash',
+                                                              }
+                                                            : item
+                                                      )
+                                                  );
+                                                })
                                               }
-                                            );
+                                            >
+                                              <Banknote size={15} />
+                                              Numerar
+                                            </button>
 
-                                            setOrders(
-                                              previous =>
-                                                previous.filter(
-                                                  item =>
-                                                    item.id !==
-                                                    order.id
-                                                )
-                                            );
+                                            <button
+                                              type="button"
+                                              className="payment-method-button card"
+                                              disabled={busy}
+                                              onClick={() =>
+                                                action(async () => {
+                                                  await api('', {
+                                                    action:
+                                                      'set_paid',
+                                                    id: round.id,
+                                                    orderId:
+                                                      order.id,
+                                                    paid: true,
+                                                    paymentMethod:
+                                                      'card',
+                                                  });
 
-                                            setNotice(
-                                              'Comanda a fost ștearsă. Totalurile au fost actualizate.'
-                                            );
+                                                  setOrders(
+                                                    previous =>
+                                                      previous.map(
+                                                        item =>
+                                                          item.id ===
+                                                          order.id
+                                                            ? {
+                                                                ...item,
+                                                                paid: true,
+                                                                payment_method:
+                                                                  'card',
+                                                              }
+                                                            : item
+                                                      )
+                                                  );
+                                                })
+                                              }
+                                            >
+                                              <CreditCard size={15} />
+                                              Transfer / card
+                                            </button>
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+
+                                    <div className="order-management-actions">
+                                      <button
+                                        type="button"
+                                        className="secondary compact-action"
+                                        disabled={busy}
+                                        onClick={() =>
+                                          action(() =>
+                                            editOrder(
+                                              round.id,
+                                              order.id
+                                            )
+                                          )
+                                        }
+                                      >
+                                        Modifică
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        className="secondary delete-order compact-action"
+                                        disabled={busy}
+                                        onClick={() => {
+                                          if (
+                                            !window.confirm(
+                                              'Ștergi comanda lui ' +
+                                                order.name +
+                                                '? Aceasta va fi eliminată din totaluri.'
+                                            )
+                                          ) {
+                                            return;
                                           }
-                                        );
-                                      }}
-                                    >
-                                      <Trash2
-                                        size={15}
-                                      />
-                                      Șterge
-                                    </button>
+
+                                          action(
+                                            async () => {
+                                              await api(
+                                                '',
+                                                {
+                                                  action:
+                                                    'delete_order',
+                                                  id: round.id,
+                                                  orderId:
+                                                    order.id,
+                                                  revision:
+                                                    order.revision,
+                                                }
+                                              );
+
+                                              setOrders(
+                                                previous =>
+                                                  previous.filter(
+                                                    item =>
+                                                      item.id !==
+                                                      order.id
+                                                  )
+                                              );
+
+                                              setNotice(
+                                                'Comanda a fost ștearsă. Totalurile au fost actualizate.'
+                                              );
+                                            }
+                                          );
+                                        }}
+                                      >
+                                        <Trash2 size={15} />
+                                        Șterge
+                                      </button>
+                                    </div>
                                   </div>
                                 </article>
                               ))
