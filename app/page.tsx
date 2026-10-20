@@ -940,6 +940,30 @@ export default function Home() {
     0
   );
 
+  const cashPaidOrders = paidOrders.filter(
+    order => order.payment_method === 'cash'
+  );
+
+  const cardPaidOrders = paidOrders.filter(
+    order => order.payment_method === 'card'
+  );
+
+  const cashPaidTotal = cashPaidOrders.reduce(
+    (sum, order) => sum + order.total,
+    0
+  );
+
+  const cardPaidTotal = cardPaidOrders.reduce(
+    (sum, order) => sum + order.total,
+    0
+  );
+
+  const legacyPaidOrders = paidOrders.filter(
+    order =>
+      order.payment_method !== 'cash' &&
+      order.payment_method !== 'card'
+  );
+
   const remainingTotal = Math.max(
     0,
     allTotal - paidTotal
@@ -1320,6 +1344,7 @@ export default function Home() {
         'Subtotal',
         'Monedă',
         'Plătit',
+        'Metodă plată',
       ],
     ];
 
@@ -1341,6 +1366,13 @@ export default function Home() {
           (unitPrice * item.qty) / 100,
           round.currency,
           order.paid ? 'Da' : 'Nu',
+          order.paid
+            ? order.payment_method === 'cash'
+              ? 'Numerar'
+              : order.payment_method === 'card'
+                ? 'Transfer / card'
+                : 'Nespecificată'
+            : '',
         ]);
       }
     }
@@ -1372,6 +1404,8 @@ export default function Home() {
       ['Cantitate totală', count],
       ['Total', allTotal / 100],
       ['Plătit', paidTotal / 100],
+      ['Numerar', cashPaidTotal / 100],
+      ['Transfer / card', cardPaidTotal / 100],
       [
         'Rămas de plată',
         remainingTotal / 100,
@@ -3074,7 +3108,13 @@ export default function Home() {
                                         }
                                       >
                                         {order.paid
-                                          ? 'Plătit'
+                                          ? order.payment_method ===
+                                            'cash'
+                                            ? 'Plătit · Numerar'
+                                            : order.payment_method ===
+                                                'card'
+                                              ? 'Plătit · Transfer/card'
+                                              : 'Plătit'
                                           : 'Neplătit'}
                                       </span>
 
@@ -3579,54 +3619,146 @@ export default function Home() {
                                   </div>
 
                                   <div className="person-actions">
-                                    <button
-                                      className={
-                                        'secondary payment-toggle ' +
-                                        (order.paid
-                                          ? 'paid'
-                                          : '')
-                                      }
-                                      disabled={busy}
-                                      onClick={() =>
-                                        action(async () => {
-                                          const nextPaid =
-                                            !order.paid;
-
-                                          await api('', {
-                                            action:
-                                              'set_paid',
-                                            id: round.id,
-                                            orderId:
-                                              order.id,
-                                            paid: nextPaid,
-                                          });
-
-                                          setOrders(
-                                            previous =>
-                                              previous.map(
-                                                item =>
-                                                  item.id ===
-                                                  order.id
-                                                    ? {
-                                                        ...item,
-                                                        paid:
-                                                          nextPaid,
-                                                      }
-                                                    : item
-                                              )
-                                          );
-                                        })
-                                      }
-                                    >
-                                      {order.paid ? (
-                                        <>
+                                    {order.paid ? (
+                                      <>
+                                        <span
+                                          className={
+                                            'payment-method-status ' +
+                                            (order.payment_method ===
+                                            'cash'
+                                              ? 'cash'
+                                              : order.payment_method ===
+                                                  'card'
+                                                ? 'card'
+                                                : 'legacy')
+                                          }
+                                        >
                                           <Check size={15} />
-                                          Plătit
-                                        </>
-                                      ) : (
-                                        'Marchează plătit'
-                                      )}
-                                    </button>
+                                          {order.payment_method ===
+                                          'cash'
+                                            ? 'Plătit · Numerar'
+                                            : order.payment_method ===
+                                                'card'
+                                              ? 'Plătit · Transfer/card'
+                                              : 'Plătit'}
+                                        </span>
+
+                                        <button
+                                          className="secondary payment-unmark"
+                                          disabled={busy}
+                                          onClick={() =>
+                                            action(async () => {
+                                              await api('', {
+                                                action:
+                                                  'set_paid',
+                                                id: round.id,
+                                                orderId:
+                                                  order.id,
+                                                paid: false,
+                                              });
+
+                                              setOrders(
+                                                previous =>
+                                                  previous.map(
+                                                    item =>
+                                                      item.id ===
+                                                      order.id
+                                                        ? {
+                                                            ...item,
+                                                            paid: false,
+                                                            payment_method:
+                                                              null,
+                                                          }
+                                                        : item
+                                                  )
+                                              );
+                                            })
+                                          }
+                                        >
+                                          Anulează plata
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <div className="payment-method-actions">
+                                        <span className="payment-method-label">
+                                          Marchează plătit:
+                                        </span>
+
+                                        <button
+                                          className="secondary payment-method-button cash"
+                                          disabled={busy}
+                                          onClick={() =>
+                                            action(async () => {
+                                              await api('', {
+                                                action:
+                                                  'set_paid',
+                                                id: round.id,
+                                                orderId:
+                                                  order.id,
+                                                paid: true,
+                                                paymentMethod:
+                                                  'cash',
+                                              });
+
+                                              setOrders(
+                                                previous =>
+                                                  previous.map(
+                                                    item =>
+                                                      item.id ===
+                                                      order.id
+                                                        ? {
+                                                            ...item,
+                                                            paid: true,
+                                                            payment_method:
+                                                              'cash',
+                                                          }
+                                                        : item
+                                                  )
+                                              );
+                                            })
+                                          }
+                                        >
+                                          Numerar
+                                        </button>
+
+                                        <button
+                                          className="secondary payment-method-button card"
+                                          disabled={busy}
+                                          onClick={() =>
+                                            action(async () => {
+                                              await api('', {
+                                                action:
+                                                  'set_paid',
+                                                id: round.id,
+                                                orderId:
+                                                  order.id,
+                                                paid: true,
+                                                paymentMethod:
+                                                  'card',
+                                              });
+
+                                              setOrders(
+                                                previous =>
+                                                  previous.map(
+                                                    item =>
+                                                      item.id ===
+                                                      order.id
+                                                        ? {
+                                                            ...item,
+                                                            paid: true,
+                                                            payment_method:
+                                                              'card',
+                                                          }
+                                                        : item
+                                                  )
+                                              );
+                                            })
+                                          }
+                                        >
+                                          Transfer / card
+                                        </button>
+                                      </div>
+                                    )}
 
                                     <button
                                       className="secondary"
@@ -3729,6 +3861,42 @@ export default function Home() {
                                     {money(paidTotal)}
                                   </strong>
                                 </div>
+
+                                <div className="payment-summary-method cash">
+                                  <span>
+                                    Numerar
+                                  </span>
+                                  <strong>
+                                    {money(cashPaidTotal)}
+                                    {' · '}
+                                    {cashPaidOrders.length}
+                                  </strong>
+                                </div>
+
+                                <div className="payment-summary-method card">
+                                  <span>
+                                    Transfer / card
+                                  </span>
+                                  <strong>
+                                    {money(cardPaidTotal)}
+                                    {' · '}
+                                    {cardPaidOrders.length}
+                                  </strong>
+                                </div>
+
+                                {legacyPaidOrders.length >
+                                  0 && (
+                                  <div className="payment-summary-method legacy">
+                                    <span>
+                                      Plăți vechi fără metodă
+                                    </span>
+                                    <strong>
+                                      {
+                                        legacyPaidOrders.length
+                                      }
+                                    </strong>
+                                  </div>
+                                )}
 
                                 <div>
                                   <span>

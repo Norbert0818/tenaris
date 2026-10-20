@@ -1029,3 +1029,81 @@
   }
 
 }
+
+
+/* Payment method controls */
+.payment-method-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.payment-method-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #667085;
+  margin-right: 2px;
+}
+
+.payment-method-button {
+  min-height: 36px;
+}
+
+.payment-method-button.cash {
+  border-color: #86b89b;
+}
+
+.payment-method-button.card {
+  border-color: #8fa8d8;
+}
+
+.payment-method-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 8px 11px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid #b8c4d6;
+  background: #f7f9fc;
+}
+
+.payment-method-status.cash {
+  border-color: #86b89b;
+  background: #f1f8f4;
+}
+
+.payment-method-status.card {
+  border-color: #8fa8d8;
+  background: #f2f5fb;
+}
+
+.payment-method-status.legacy {
+  background: #f7f7f7;
+}
+
+.payment-unmark {
+  font-size: 12px;
+}
+
+.payment-summary-method.cash strong,
+.payment-summary-method.card strong {
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .payment-method-actions {
+    width: 100%;
+  }
+
+  .payment-method-label {
+    width: 100%;
+  }
+
+  .payment-method-button {
+    flex: 1 1 130px;
+  }
+}

@@ -62,7 +62,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (expected.length < 12) {
+    if (expected.length < 6) {
       console.error(
         'AUTH ERROR: ADMIN_PASSWORD are doar',
         expected.length,

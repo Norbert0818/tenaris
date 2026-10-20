@@ -200,7 +200,7 @@ export async function GET(req: Request) {
       ? await database(
           'orders?round_id=eq.' +
             id +
-            '&deleted=eq.false&select=id,name,items,total,created,revision,paid&order=created.desc'
+            '&deleted=eq.false&select=id,name,items,total,created,revision,paid,payment_method&order=created.desc'
         )
       : [];
 
@@ -590,50 +590,78 @@ export async function POST(req: Request) {
     ];
 
     if (body.action === 'set_paid') {
-  if (!canManage) {
-    return fail(
-      'Doar organizatorul poate modifica starea plății.',
-      403
-    );
-  }
+      if (!canManage) {
+        return fail(
+          'Doar organizatorul poate modifica starea plății.',
+          403
+        );
+      }
 
-  if (!uuid(body.orderId)) {
-    return fail('Comanda nu este validă.');
-  }
+      if (!uuid(body.orderId)) {
+        return fail('Comanda nu este validă.');
+      }
 
-  const result = await database(
-    'orders?id=eq.' +
-      body.orderId +
-      '&round_id=eq.' +
-      body.id +
-      '&deleted=eq.false',
-    {
-      method: 'PATCH',
-      body: JSON.stringify({
-        paid: !!body.paid,
-      }),
+      const nextPaid = body.paid === true;
+
+      const paymentMethod =
+        nextPaid &&
+        typeof body.paymentMethod === 'string'
+          ? body.paymentMethod
+          : null;
+
+      if (
+        nextPaid &&
+        !['cash', 'card'].includes(
+          paymentMethod || ''
+        )
+      ) {
+        return fail(
+          'Alege metoda de plată: numerar sau transfer/card.'
+        );
+      }
+
+      const result = await database(
+        'orders?id=eq.' +
+          body.orderId +
+          '&round_id=eq.' +
+          body.id +
+          '&deleted=eq.false',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            paid: nextPaid,
+            payment_method: nextPaid
+              ? paymentMethod
+              : null,
+          }),
+        }
+      );
+
+      if (
+        !Array.isArray(result) ||
+        !result.length
+      ) {
+        return fail(
+          'Comanda nu a fost găsită.',
+          404
+        );
+      }
+
+      return Response.json(
+        {
+          ok: true,
+          paid: nextPaid,
+          paymentMethod: nextPaid
+            ? paymentMethod
+            : null,
+        },
+        {
+          headers: {
+            'Cache-Control': 'no-store',
+          },
+        }
+      );
     }
-  );
-
-  if (!Array.isArray(result) || !result.length) {
-    return fail(
-      'Comanda nu a fost găsită.',
-      404
-    );
-  }
-
-  return Response.json(
-    {
-      ok: true,
-      paid: !!body.paid,
-    },
-    {
-      headers: {
-        'Cache-Control': 'no-store',
-      },
-    }
-  );
-}
 
     const tokenValid =
       typeof body.editToken === 'string' &&
