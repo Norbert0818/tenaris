@@ -76,6 +76,7 @@ export type OrderProduct = {
   image?: string;
   section?: string;
   category?: string;
+  markupPerItem?: number;
   dailyChoices?: DailyChoices;
   customDailyChoices?: CustomDailyChoices;
   customDailyPrices?: CustomDailyPrices;

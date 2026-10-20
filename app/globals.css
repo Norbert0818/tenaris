@@ -1286,3 +1286,190 @@
     flex: 1 1 0;
   }
 }
+
+
+/* Per-item price difference for Plăcintă preset */
+.markup-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 12px 0 18px;
+  padding: 11px 13px;
+  border: 1px solid #d8e1ef;
+  border-radius: 9px;
+  background: #f8fafc;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.markup-info strong {
+  flex: 0 0 auto;
+  color: #2858d8;
+  white-space: nowrap;
+}
+
+.markup-info span {
+  color: #5d6b80;
+}
+
+.payment-summary .markup-summary-row {
+  background: #faf8f1;
+}
+
+.payment-summary .markup-summary-row > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.payment-summary .markup-summary-row small {
+  font-size: 10px;
+  font-weight: 500;
+  color: #8a7650;
+}
+
+.payment-summary .markup-summary-row > strong {
+  color: #8b641d;
+}
+
+.payment-summary .markup-summary-row.actual {
+  background: #f4f7fb;
+  border-top: 1px solid #d9e2ef;
+}
+
+.payment-summary .markup-summary-row.actual > strong {
+  color: #172640;
+}
+
+.restaurant-price-breakdown {
+  margin-top: 18px;
+  border-top: 1px solid #dfe5ee;
+  padding-top: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.restaurant-price-breakdown > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 13px;
+}
+
+.restaurant-price-breakdown > div strong {
+  white-space: nowrap;
+}
+
+.restaurant-price-breakdown .markup {
+  color: #8b641d;
+}
+
+.restaurant-price-breakdown .actual {
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px solid #dfe5ee;
+  font-size: 14px;
+  color: #172640;
+}
+
+.restaurant-price-breakdown .actual strong {
+  font-size: 16px;
+}
+
+@media (max-width: 560px) {
+  .markup-info {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+
+/* Cleaner per-person ordered items */
+.person-order-groups {
+  margin: 14px 0 0 43px;
+  display: grid;
+  gap: 12px;
+}
+
+.person-order-group {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #e4eaf2;
+  border-radius: 12px;
+  background: #fbfcfe;
+}
+
+.person-order-category {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.person-order-section,
+.person-order-category strong {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.person-order-section {
+  color: #5d6b80;
+  background: #eef2f8;
+}
+
+.person-order-section::after {
+  content: none;
+}
+
+.person-order-category strong {
+  color: #173b7a;
+  background: #e9f0ff;
+}
+
+.person-order-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.person-order-items li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  color: #445066;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.person-order-qty {
+  color: #173b7a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.person-order-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 700px) {
+  .person-order-groups {
+    margin-left: 0;
+  }
+
+  .person-order-group {
+    padding: 11px 12px;
+  }
+}

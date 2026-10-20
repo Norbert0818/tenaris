@@ -285,7 +285,14 @@ export async function POST(req: Request) {
             product.name.length > 200 ||
             !Number.isInteger(product.price) ||
             product.price < 0 ||
-            product.price > 10000000
+            product.price > 10000000 ||
+            (product.markupPerItem !== undefined &&
+              (!Number.isInteger(
+                product.markupPerItem
+              ) ||
+                product.markupPerItem < 0 ||
+                product.markupPerItem >
+                  product.price))
         )
       ) {
         return fail(
@@ -447,22 +454,40 @@ export async function POST(req: Request) {
       }
 
       const expanded = body.products.flatMap(
-        (product: any) =>
-          product.customDailyMenu
-            ? customDailyVariants(
-                product.customDailyMenu
-              )
-            : product.dailyMenu
-              ? dailyVariants()
-              : [
-                  {
-                    name: product.name,
-                    price: product.price,
-                    image: product.image,
-                    section: product.section,
-                    category: product.category,
-                  },
-                ]
+        (product: any) => {
+          const variants =
+            product.customDailyMenu
+              ? customDailyVariants(
+                  product.customDailyMenu
+                )
+              : product.dailyMenu
+                ? dailyVariants()
+                : [
+                    {
+                      name: product.name,
+                      price: product.price,
+                      image: product.image,
+                      section: product.section,
+                      category: product.category,
+                    },
+                  ];
+
+          return variants.map(
+            (variant: any) => ({
+              ...variant,
+
+              ...(Number.isInteger(
+                product.markupPerItem
+              ) &&
+              product.markupPerItem > 0
+                ? {
+                    markupPerItem:
+                      product.markupPerItem,
+                  }
+                : {}),
+            })
+          );
+        }
       );
 
       const id = crypto.randomUUID();
@@ -488,6 +513,16 @@ export async function POST(req: Request) {
               id: crypto.randomUUID(),
               name: product.name.trim(),
               price: product.price,
+
+              ...(Number.isInteger(
+                product.markupPerItem
+              ) &&
+              product.markupPerItem > 0
+                ? {
+                    markupPerItem:
+                      product.markupPerItem,
+                  }
+                : {}),
 
               ...(product.dailyChoices
                 ? {

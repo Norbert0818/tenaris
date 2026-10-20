@@ -19,6 +19,7 @@ export type DraftProduct = {
   category?: string;
   dailyMenu?: boolean;
   customDailyMenu?: DraftCustomDailyMenu;
+  markupPerItem?: string;
 };
 
 type RawMenuProduct = {
@@ -76,7 +77,12 @@ export const restaurants: RestaurantPreset[] = [
     products: normalizeMenu(
       'placinta-fastfood',
       placintaFastFoodMenu as RawMenuProduct[]
-    ),
+    ).map(product => ({
+      ...product,
+      // Prețurile din JSON includ +1 RON / produs.
+      // Această diferență se separă automat în centralizator.
+      markupPerItem: '1.00',
+    })),
   },
 ];
 

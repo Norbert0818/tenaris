@@ -15,6 +15,7 @@ type Draft = {
   category?: string;
   dailyMenu?: boolean;
   customDailyMenu?: DraftCustomDailyMenu;
+  markupPerItem?: string;
 };
 
 function toCents(value: string) {
@@ -73,6 +74,24 @@ export function prepareProducts(products: Draft[]) {
         !validPrice(product.price)
       ) {
         return true;
+      }
+
+      if (product.markupPerItem !== undefined) {
+        const markup = Number(
+          product.markupPerItem.replace(',', '.')
+        );
+        const price = Number(
+          product.price.replace(',', '.')
+        );
+
+        if (
+          product.markupPerItem.trim() === '' ||
+          !Number.isFinite(markup) ||
+          markup < 0 ||
+          markup > price
+        ) {
+          return true;
+        }
       }
 
       if (!product.customDailyMenu) {
@@ -159,6 +178,14 @@ export function prepareProducts(products: Draft[]) {
 
       ...(customDailyMenu
         ? { customDailyMenu }
+        : {}),
+
+      ...(product.markupPerItem !== undefined
+        ? {
+            markupPerItem: toCents(
+              product.markupPerItem
+            ),
+          }
         : {}),
     };
   });

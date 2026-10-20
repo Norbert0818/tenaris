@@ -920,6 +920,48 @@ export default function Home() {
     0
   );
 
+  const productById = new Map<string, Product>(
+    (round?.products || []).map(
+      (product: Product) => [product.id, product]
+    )
+  );
+
+  const hasMarkup = (
+    round?.products || []
+  ).some(
+    (product: Product) =>
+      Number(product.markupPerItem || 0) > 0
+  );
+
+  const markupTotal = orders.reduce(
+    (orderSum, order) =>
+      orderSum +
+      (order.items || []).reduce(
+        (
+          itemSum: number,
+          item: any
+        ) => {
+          const product =
+            productById.get(item.id);
+
+          const markup =
+            Number(
+              product?.markupPerItem || 0
+            );
+
+          return (
+            itemSum +
+            markup * Number(item.qty || 0)
+          );
+        },
+        0
+      ),
+    0
+  );
+
+  const actualRestaurantTotal =
+    Math.max(0, allTotal - markupTotal);
+
   const count = orders.reduce(
     (sum, order) =>
       sum +
@@ -969,12 +1011,6 @@ export default function Home() {
   const remainingTotal = Math.max(
     0,
     allTotal - paidTotal
-  );
-
-  const productById = new Map<string, Product>(
-    (round?.products || []).map(
-      (product: Product) => [product.id, product]
-    )
   );
 
   function getProductAmount(productId: string) {
@@ -1267,7 +1303,11 @@ export default function Home() {
     }
 
     lines.push(
-      `*Total comandă: ${money(allTotal)}*`
+      `*Total restaurant: ${money(
+        hasMarkup
+          ? actualRestaurantTotal
+          : allTotal
+      )}*`
     );
 
     return lines.join('\n').trim();
@@ -1404,7 +1444,19 @@ export default function Home() {
       ['Monedă', round.currency],
       ['Persoane', orders.length],
       ['Cantitate totală', count],
-      ['Total', allTotal / 100],
+      ['Total încasat', allTotal / 100],
+      ...(hasMarkup
+        ? [
+            [
+              'Diferență +1 RON / produs',
+              markupTotal / 100,
+            ] as ExcelCell[],
+            [
+              'Total real restaurant',
+              actualRestaurantTotal / 100,
+            ] as ExcelCell[],
+          ]
+        : []),
       ['Plătit', paidTotal / 100],
       ['Numerar', cashPaidTotal / 100],
       ['Transfer / card', cardPaidTotal / 100],
@@ -1996,15 +2048,33 @@ export default function Home() {
                 </div>
 
                 {selectedRestaurant && (
-                  <RestaurantPicker
-                    restaurant={
-                      selectedRestaurant
-                    }
-                    value={restaurantProducts}
-                    onChange={
-                      setRestaurantProducts
-                    }
-                  />
+                  <>
+                    <RestaurantPicker
+                      restaurant={
+                        selectedRestaurant
+                      }
+                      value={restaurantProducts}
+                      onChange={
+                        setRestaurantProducts
+                      }
+                    />
+
+                    {selectedRestaurant.id ===
+                      'placintarie-uzcasnic' && (
+                      <div className="markup-info">
+                        <strong>
+                          +1 RON / produs
+                        </strong>
+                        <span>
+                          Prețurile afișate includ diferența de
+                          1 RON pentru fiecare bucată.
+                          Centralizatorul va calcula separat
+                          suma acumulată și totalul real al
+                          restaurantului.
+                        </span>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <DailyMenu
@@ -3605,16 +3675,26 @@ export default function Home() {
                                             </div>
                                           )}
 
-                                          <p>
-                                            {group.items
-                                              .map(
-                                                (
-                                                  item: any
-                                                ) =>
-                                                  `${item.qty} × ${item.name}`
+                                          <ul className="person-order-items">
+                                            {group.items.map(
+                                              (
+                                                item: any,
+                                                itemIndex: number
+                                              ) => (
+                                                <li
+                                                  key={`${item.name}-${itemIndex}`}
+                                                >
+                                                  <span className="person-order-qty">
+                                                    {item.qty} ×
+                                                  </span>
+
+                                                  <span className="person-order-name">
+                                                    {item.name}
+                                                  </span>
+                                                </li>
                                               )
-                                              .join(' · ')}
-                                          </p>
+                                            )}
+                                          </ul>
                                         </div>
                                       )
                                     )}
@@ -3860,12 +3940,43 @@ export default function Home() {
 
                                 <div>
                                   <span>
-                                    Total comandă
+                                    {hasMarkup
+                                      ? 'Total încasat de la colegi'
+                                      : 'Total comandă'}
                                   </span>
                                   <strong>
                                     {money(allTotal)}
                                   </strong>
                                 </div>
+
+                                {hasMarkup && (
+                                  <>
+                                    <div className="markup-summary-row">
+                                      <span>
+                                        Diferență acumulată
+                                        <small>
+                                          +1 RON / produs
+                                        </small>
+                                      </span>
+                                      <strong>
+                                        +{money(
+                                          markupTotal
+                                        )}
+                                      </strong>
+                                    </div>
+
+                                    <div className="markup-summary-row actual">
+                                      <span>
+                                        Total real restaurant
+                                      </span>
+                                      <strong>
+                                        {money(
+                                          actualRestaurantTotal
+                                        )}
+                                      </strong>
+                                    </div>
+                                  </>
+                                )}
 
                                 <div>
                                   <span>
@@ -4015,6 +4126,40 @@ export default function Home() {
                                 </p>
                               )}
                             </div>
+
+                            {orders.length > 0 &&
+                              hasMarkup && (
+                              <div className="restaurant-price-breakdown">
+                                <div>
+                                  <span>
+                                    Total încasat de la colegi
+                                  </span>
+                                  <strong>
+                                    {money(allTotal)}
+                                  </strong>
+                                </div>
+
+                                <div className="markup">
+                                  <span>
+                                    Diferență +1 RON / produs
+                                  </span>
+                                  <strong>
+                                    +{money(markupTotal)}
+                                  </strong>
+                                </div>
+
+                                <div className="actual">
+                                  <span>
+                                    De plătit restaurantului
+                                  </span>
+                                  <strong>
+                                    {money(
+                                      actualRestaurantTotal
+                                    )}
+                                  </strong>
+                                </div>
+                              </div>
+                            )}
                           </section>
                         </div>
                       </TabsContent>
